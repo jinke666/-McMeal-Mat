@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mcmeal-mate"
+version = "1.0.0"
+description = "麦膳精算师 (McMeal-Mate) —— 基于多约束背包算法与麦当劳 MCP 的极致省钱配餐与智能点餐 Agent"
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [
+    { name = "McMeal-Mate Team" }
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Mathematics",
+]
+
+[project.scripts]
+mcmeal = "mcmeal.cli:run_cli"
