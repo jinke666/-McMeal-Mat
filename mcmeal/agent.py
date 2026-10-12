@@ -7,26 +7,30 @@ import re
 from typing import Dict, Any, List, Optional
 from mcmeal.mcp_client import McDonaldMCPClient
 from mcmeal.optimizer import McOptimizer
+from mcmeal.memory import McMealMemory, UserPreference
 from mcmeal.models import (
     OptimizationConstraint, OptimizedPlan, FoodCategory,
-    MenuItem, Coupon, StoreInfo
+    MenuItem, Coupon, StoreInfo, DataReliability,
+    MemberPreference, GroupOrderPlan
 )
 
 class McMealAgent:
     """麦膳精算师智能体"""
 
-    def __init__(self, mcp_client: Optional[McDonaldMCPClient] = None):
+    def __init__(self, mcp_client: Optional[McDonaldMCPClient] = None, memory: Optional[McMealMemory] = None):
         self.client = mcp_client or McDonaldMCPClient()
+        self.memory = memory or McMealMemory()
 
-    def process_request(self, user_prompt: str, city: str = "上海", keyword: str = "人民广场") -> Dict[str, Any]:
+    def process_request(self, user_prompt: str, city: str = "上海", keyword: str = "人民广场", user_id: str = "default_user") -> Dict[str, Any]:
         """
         处理用户的点餐/省钱/配餐请求全流程：
-        1. 意图解析 (提取预算、偏好、卡路里、忌口等)
+        1. 意图解析 (提取预算、偏好、卡路里、忌口等) 并结合长期记忆
         2. MCP 服务资产同步 (一键领券、拉取门店与在售餐品、同步营养库)
         3. 运筹优化求解 (多约束背包算法)
         4. 真实算价校验与结果装配
         """
         constraint = self._parse_intent(user_prompt)
+        self._apply_memory_preferences(user_id, constraint, user_prompt)
 
         # 1. 资产与日历协同 (自动领券与活动扫描)
         coupon_claim_result = self.client.auto_bind_coupons()
@@ -57,15 +61,49 @@ class McMealAgent:
             plan.original_total = calc_res.get("original_amount", plan.original_total)
             plan.saved_amount = round(plan.original_total - plan.actual_total, 2)
             plan.discount_rate = round(plan.actual_total / plan.original_total, 2) if plan.original_total > 0 else 1.0
+            plan.reliability = calc_res.get("reliability", DataReliability.LIVE_VERIFIED)
             verified_plans.append(plan)
 
         return {
             "query": user_prompt,
+            "maimai_speech": "哈喽！我是你的专属点餐搭档麦麦～ 已经为你核对好门店活动与优惠券啦！✨",
+            "memory_summary": self.memory.get_context_for_prompt(user_id),
             "constraint": constraint,
             "store": selected_store,
             "calendar": calendar_info,
             "coupon_status": coupon_claim_result.get("message", "已同步优惠券资产"),
             "plans": verified_plans
+        }
+
+    def process_group_order(self, members: List[MemberPreference], city: str = "上海", keyword: str = "人民广场") -> Dict[str, Any]:
+        """
+        处理双人/多人协同点餐全流程 (符合 v1.0 规格书 2.2 节核心差异化)：
+        1. 独立解析每位参与者偏好、忌口、预算
+        2. 选定最佳共享餐品
+        3. 求解协同组合方案并按数学公平比例分摊
+        4. 真实算价校验与结果装配
+        """
+        # 1. 资产与日历协同
+        coupon_claim_result = self.client.auto_bind_coupons()
+        available_coupons = self.client.get_available_coupons()
+
+        # 2. 门店与在售餐品
+        stores = self.client.query_nearby_stores(city=city, keyword=keyword)
+        selected_store = stores[0] if stores else None
+        store_code = selected_store.store_code if selected_store else "1450713"
+        menu = self.client.get_store_meals(store_code=store_code)
+
+        # 3. 运筹求解双人方案
+        optimizer = McOptimizer(menu=menu, coupons=available_coupons)
+        group_plans = optimizer.solve_group_order(members)
+
+        return {
+            "members_count": len(members),
+            "members": [m.name for m in members],
+            "maimai_speech": f"找到适合你们 {len(members)} 人的神仙吃法啦！独立餐品满足各自忌口，共享小食按比例公平分摊，谁也不吃亏～ 🎉",
+            "store": selected_store,
+            "coupon_status": coupon_claim_result.get("message", "已同步优惠券资产"),
+            "plans": group_plans
         }
 
     def solve_delivery_pooling(self, current_items: List[MenuItem], min_spend: float = 39.0) -> Dict[str, Any]:
@@ -128,3 +166,46 @@ class McMealAgent:
             constraint.excluded_items.extend(["冰美式中杯"])
 
         return constraint
+
+    def _apply_memory_preferences(self, user_id: str, constraint: OptimizationConstraint, text: str) -> None:
+        """从长期记忆中载入偏好，并把本次对话中明确表达的偏好持久化更新"""
+        # 1. 用户本次主动表达偏好 -> 持久化为 user-stated
+        if "不吃辣" in text:
+            self.memory.set_preference(user_id, "spicy_ok", "false", source="user-stated")
+        elif "可以吃辣" in text or "能吃辣" in text:
+            self.memory.set_preference(user_id, "spicy_ok", "true", source="user-stated")
+
+        if "不要可乐" in text:
+            self.memory.set_preference(user_id, "avoid_coke", "true", source="user-stated")
+
+        # 2. 从长期记忆中提取并填充未在当前 prompt 中指定的约束
+        prefs = {p.key: p.value for p in self.memory.list_preferences(user_id)}
+
+        # 若记忆中记录了不吃辣，且当前 prompt 没有显式要求辣味
+        if prefs.get("spicy_ok") == "false" and "能吃辣" not in text and "可以吃辣" not in text:
+            for item in ["麦辣鸡腿汉堡", "麦辣鸡翅-2块"]:
+                if item not in constraint.excluded_items:
+                    constraint.excluded_items.append(item)
+
+        if prefs.get("avoid_coke") == "true" and "可乐" not in text:
+            if "可乐中杯" not in constraint.excluded_items:
+                constraint.excluded_items.append("可乐中杯")
+
+        if "calorie_target" in prefs and constraint.max_calories >= 900.0:
+            try:
+                constraint.max_calories = float(prefs["calorie_target"])
+            except ValueError:
+                pass
+
+    def set_user_preference(self, user_id: str, key: str, value: str, source: str = "user-stated") -> None:
+        """设置用户偏好"""
+        self.memory.set_preference(user_id, key, value, source)
+
+    def erase_user_preferences(self, user_id: str, key: Optional[str] = None) -> int:
+        """擦除用户偏好"""
+        return self.memory.erase_preferences(user_id, key)
+
+    def get_user_memory_summary(self, user_id: str) -> str:
+        """获取用户记忆摘要"""
+        return self.memory.get_context_for_prompt(user_id)
+

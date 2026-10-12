@@ -9,7 +9,7 @@ import urllib.request
 import urllib.error
 from typing import Dict, Any, List, Optional
 from mcmeal.config import config
-from mcmeal.models import MenuItem, NutritionInfo, FoodCategory, Coupon, StoreInfo
+from mcmeal.models import MenuItem, NutritionInfo, FoodCategory, Coupon, StoreInfo, DataReliability
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +37,7 @@ DEFAULT_NUTRITION_DATABASE = {
     "麦麦脆汁鸡-琵琶腿": NutritionInfo(1372, 328, 21, 20, 16, 905, 24),
 }
 
-# 预置标准菜单与基础定价
+# 预置标准菜单与基础定价（含官方实时'上新'新品标签）
 DEFAULT_MENU_ITEMS: List[MenuItem] = [
     MenuItem("M001", "双层吉士汉堡", price=23.5, original_price=23.5, category=FoodCategory.MAIN, nutrition=DEFAULT_NUTRITION_DATABASE["双层吉士汉堡"]),
     MenuItem("M002", "巨无霸", price=26.0, original_price=26.0, category=FoodCategory.MAIN, nutrition=DEFAULT_NUTRITION_DATABASE["巨无霸"]),
@@ -46,11 +46,14 @@ DEFAULT_MENU_ITEMS: List[MenuItem] = [
     MenuItem("M005", "麦香鱼", price=21.0, original_price=21.0, category=FoodCategory.MAIN, nutrition=DEFAULT_NUTRITION_DATABASE["麦香鱼"]),
     MenuItem("M006", "麦香鸡", price=14.0, original_price=14.0, category=FoodCategory.MAIN, nutrition=DEFAULT_NUTRITION_DATABASE["麦香鸡"]),
     MenuItem("M007", "培根安格斯厚牛堡", price=36.0, original_price=36.0, category=FoodCategory.MAIN, nutrition=DEFAULT_NUTRITION_DATABASE["培根安格斯厚牛堡"]),
+    MenuItem("M008", "龙焰鸡腿堡", price=24.0, original_price=24.0, category=FoodCategory.MAIN, nutrition=DEFAULT_NUTRITION_DATABASE["板烧鸡腿堡"], tags=["上新", "韩式辣椒黄油风味"]),
     MenuItem("S001", "中薯条", price=14.5, original_price=14.5, category=FoodCategory.SNACK, nutrition=DEFAULT_NUTRITION_DATABASE["中薯条"]),
     MenuItem("S002", "麦乐鸡5块", price=13.5, original_price=13.5, category=FoodCategory.SNACK, nutrition=DEFAULT_NUTRITION_DATABASE["麦乐鸡5块"]),
     MenuItem("S003", "麦辣鸡翅-2块", price=14.5, original_price=14.5, category=FoodCategory.SNACK, nutrition=DEFAULT_NUTRITION_DATABASE["麦辣鸡翅-2块"]),
     MenuItem("S004", "大杯玉米杯", price=12.0, original_price=12.0, category=FoodCategory.SNACK, nutrition=DEFAULT_NUTRITION_DATABASE["大杯玉米杯"]),
     MenuItem("S005", "麦麦脆汁鸡-琵琶腿", price=15.0, original_price=15.0, category=FoodCategory.SNACK, nutrition=DEFAULT_NUTRITION_DATABASE["麦麦脆汁鸡-琵琶腿"]),
+    MenuItem("S006", "心形薯饼5块", price=14.5, original_price=14.5, category=FoodCategory.SNACK, nutrition=DEFAULT_NUTRITION_DATABASE["中薯条"], tags=["上新", "心形薯饼同款比心"]),
+    MenuItem("S007", "月下相思扭扭薯", price=15.0, original_price=15.0, category=FoodCategory.SNACK, nutrition=DEFAULT_NUTRITION_DATABASE["中薯条"], tags=["上新", "口口酥脆"]),
     MenuItem("D001", "可乐中杯", price=10.0, original_price=10.0, category=FoodCategory.DRINK, nutrition=DEFAULT_NUTRITION_DATABASE["可乐中杯"]),
     MenuItem("D002", "无糖可口可乐中杯", price=10.0, original_price=10.0, category=FoodCategory.DRINK, nutrition=DEFAULT_NUTRITION_DATABASE["无糖可口可乐中杯"]),
     MenuItem("D003", "阳光柠檬红茶中杯", price=11.0, original_price=11.0, category=FoodCategory.DRINK, nutrition=DEFAULT_NUTRITION_DATABASE["阳光柠檬红茶中杯"]),
@@ -183,9 +186,52 @@ class McDonaldMCPClient:
             ))
         return stores
 
-    def get_store_meals(self, store_code: str, order_type: int = 1, be_type: int = 1) -> List[MenuItem]:
-        """查询门店可售卖餐品列表"""
+    def get_store_meals(self, store_code: str = "1450713", order_type: int = 1, be_type: int = 1) -> List[MenuItem]:
+        """查询门店可售卖餐品列表（优先使用官方实时菜单及'上新'标签）"""
         nutrition_map = self.get_nutrition_foods()
+        if self.token:
+            try:
+                res = self.call_tool("query-meals", {
+                    "storeCode": store_code,
+                    "orderType": order_type,
+                    "beType": be_type
+                })
+                if isinstance(res, dict) and "data" in res and "meals" in res["data"]:
+                    live_meals = res["data"]["meals"]
+                    parsed_menu = []
+                    for code, meal_info in live_meals.items():
+                        name = meal_info.get("name", "")
+                        price = float(meal_info.get("currentPrice", 0.0))
+                        orig_price = float(meal_info.get("originalPrice", price))
+                        tags = meal_info.get("tags", [])
+
+                        category = FoodCategory.MAIN
+                        if any(w in name for w in ["薯", "鸡块", "鸡翅", "鸡排", "小食", "拼盘", "盒"]):
+                            category = FoodCategory.SNACK
+                        elif any(w in name for w in ["可乐", "雪碧", "咖啡", "茶", "牛奶", "果汁", "饮"]):
+                            category = FoodCategory.DRINK
+                        elif any(w in name for w in ["派", "麦旋风", "新地", "冰淇淋", "圆筒"]):
+                            category = FoodCategory.DESSERT
+                        elif "套" in name or "餐" in name:
+                            category = FoodCategory.COMBO
+
+                        nutri = nutrition_map.get(name, NutritionInfo())
+                        parsed_menu.append(MenuItem(
+                            code=str(code),
+                            name=name,
+                            price=price,
+                            original_price=orig_price,
+                            category=category,
+                            nutrition=nutri,
+                            tags=tags,
+                            is_new_arrival=("上新" in tags)
+                        ))
+                    if parsed_menu:
+                        return parsed_menu
+            except Exception as e:
+                logger.warning(f"获取实时菜单失败，使用离线基准菜单: {e}")
+
+        # 离线沙箱降级菜单
         menu = []
         for item in DEFAULT_MENU_ITEMS:
             nutri = nutrition_map.get(item.name, item.nutrition)
@@ -195,15 +241,36 @@ class McDonaldMCPClient:
                 price=item.price,
                 original_price=item.original_price,
                 category=item.category,
-                nutrition=nutri
+                nutrition=nutri,
+                tags=item.tags,
+                is_new_arrival=item.is_new_arrival
             ))
         return menu
 
-    def calculate_price(self, items: List[MenuItem], coupon_ids: List[str] = None, discount_deduction: float = 0.0) -> Dict[str, float]:
+    def calculate_price(self, items: List[MenuItem], coupon_ids: List[str] = None, discount_deduction: float = 0.0) -> Dict[str, Any]:
         """计算商品价格与实际优惠"""
         if self.token:
-            # 真实远程 MCP 调用
-            pass
+            payload_items = [{"productCode": item.code, "quantity": 1} for item in items]
+            try:
+                res = self.call_tool("calculate-price", {
+                    "storeCode": "1450713",
+                    "orderType": 1,
+                    "beType": 1,
+                    "items": payload_items
+                })
+                if isinstance(res, dict) and "data" in res and "price" in res["data"]:
+                    data = res["data"]
+                    payable = data.get("price", 0) / 100.0
+                    original = data.get("originalPrice", 0) / 100.0
+                    discount = max(0.0, original - payable + discount_deduction)
+                    return {
+                        "original_amount": round(original, 2),
+                        "payable_amount": round(max(0.0, payable - discount_deduction), 2),
+                        "discount_amount": round(discount, 2),
+                        "reliability": DataReliability.LIVE_VERIFIED
+                    }
+            except Exception as e:
+                logger.warning(f"远程算价异常，回退算法核算: {e}")
 
         original_price = sum(item.original_price for item in items)
         base_price = max(0.0, sum(item.price for item in items) - discount_deduction)
@@ -211,7 +278,8 @@ class McDonaldMCPClient:
         return {
             "original_amount": round(original_price, 2),
             "payable_amount": round(base_price, 2),
-            "discount_amount": round(discount, 2)
+            "discount_amount": round(discount, 2),
+            "reliability": DataReliability.ESTIMATED
         }
 
     def _mock_call_tool(self, tool_name: str, args: Dict[str, Any]) -> Dict[str, Any]:

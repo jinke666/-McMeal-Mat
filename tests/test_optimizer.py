@@ -34,5 +34,23 @@ class TestOptimizer(unittest.TestCase):
         self.assertGreaterEqual(total_after, 39.0)
         self.assertLessEqual(waste, 5.0)
 
+    def test_solve_group_order(self):
+        from mcmeal.models import MemberPreference
+        members = [
+            MemberPreference(name="Alice", budget=35.0, is_spicy_ok=True),
+            MemberPreference(name="Bob", budget=30.0, is_spicy_ok=False, excluded_items=["麦辣鸡腿汉堡"])
+        ]
+        group_plans = self.optimizer.solve_group_order(members)
+        self.assertEqual(len(group_plans), 3)
+        for gp in group_plans:
+            self.assertEqual(len(gp.members), 2)
+            # 校验全员分摊之和等于整单实付
+            members_sum = sum(m.final_payable for m in gp.members)
+            self.assertAlmostEqual(members_sum, gp.total_actual, delta=0.1)
+            # 校验 Bob 的餐品中不含辣
+            bob_share = next(m for m in gp.members if m.member_name == "Bob")
+            for item in bob_share.individual_items:
+                self.assertNotIn("麦辣", item.name)
+
 if __name__ == "__main__":
     unittest.main()

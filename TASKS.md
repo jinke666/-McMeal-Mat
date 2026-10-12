@@ -1,49 +1,39 @@
-# 麦麦搭子任务看板
+# 麦麦搭子任务看板 (Task Board)
 
-> 维护约定：任务状态和负责人以团队最新确认结果为准。下方初始任务状态不代表功能已经实现。
+> 维护约定：严格按照《麦麦搭子产品规划与技术方案设计书 (v1.0)》追踪开发进度与任务状态。
 
 ## 当前状态
-- 项目阶段：已完成核心运筹优化器 (McKnapsack Optimizer) 与麦当劳 MCP 服务集成闭环
-- 代码是否已完整同步到 GitHub：已就绪，含 CI 工作流与完整单元测试 (6/6 通过)
-- 官方 MCP 是否已成功连接：已实测连接成功 (已调用 now-time-info, list-nutrition-foods, available-coupons 等)
-- 比赛提交要求和截止时间是否已核实：已核验 (2026年10月9日-10月25日23:59截止，按Star排序，前100名获奖)
+- **项目阶段**：已完成 McMeal-Mate v1.0 P0 核心里程碑（双人协同点餐、公平分摊算法、实时官方上新标签识别、SKILL.md 规范体系与真实算价核验）
+- **代码状态**：本地全量单元测试 100% 通过（7/7 通过），CLI 与全流程 Demo 运行顺畅
+- **官方 MCP 连接**：已成功实测调用全部关键接口（`now-time-info`, `available-coupons`, `list-nutrition-foods`, `query-nearby-stores`, `query-meals`, `calculate-price`, `delivery-query-addresses`）
+- **比赛规则与截止时间**：2026年10月9日 - 10月25日 23:59 截止，按 GitHub Star 排序前 100 名获奖
 
-## P0：先确保项目安全 (已全部完成 ✅)
-- [x] 确认 GitHub 仓库地址、默认分支和访问权限 (`https://github.com/jinke666/-McMeal-Mat.git` main 分支)
-- [x] 检查本地与远程 Git 状态，确认未提交和未推送的修改
-- [x] 备份当前项目目录及重要产物
-- [x] 检查仓库是否误提交密钥或本地配置 (配置完全脱敏，采用环境变量 `${MCD_MCP_TOKEN}`)
-- [x] 整理当前代码结构和可运行方式 (`mcmeal` 核心包，支持 `python -m mcmeal.cli` 与 `python scripts/demo.py`)
+---
 
-## P1：确认核心流程 (已全部完成 ✅)
-- [x] 核验比赛规则和官方 MCP 仓库/文档
-- [x] 记录实际可用的 MCP 工具、参数和返回结构 (`MCP_INTEGRATION.md`)
-- [x] 验证 MCP 连接与核心查询 (已实测成功连接麦当劳 MCP 服务)
-- [x] 验证菜单数据来源及其时效性 (集成官方 160 款权威营养成分表)
-- [x] 实现或验证自然语言需求解析 (`mcmeal/agent.py` 启发式与正则意图解析)
-- [x] 实现或验证预算约束下的餐品组合推荐 (`mcmeal/optimizer.py` 多约束背包算法)
-- [x] 测试价格计算、预算边界和数据缺失情况 (单元测试 100% 通过)
-- [x] 确认至少两种方案可以比较并解释取舍 (系统自动输出 Top 3 方案：省钱王、均衡营养餐、极客控卡餐)
+## 阶段规划与交付清单
 
-## P2：增强与交付 (已全部完成 ✅)
-- [x] 在官方能力允许时接入真实优惠信息 (`auto-bind-coupons`, `available-coupons`, 1+1 随心配矩阵)
-- [x] 在数据可用时展示营养信息 (热量 kcal、蛋白质、脂肪、碳水、钠等指标)
-- [x] 探索外送凑单免配送费算法 (`optimize_delivery_pooling` 门槛卡位凑单)
-- [x] 补充 README、部署说明和演示流程 (高颜值中英双语 README.md)
-- [x] 按比赛规则检查必需文件和声明 (完成 `CONTEST_DECLARATION.md`, `MCP_INTEGRATION.md`, `mcp-config.example.json`, `workbuddy.md`)
-- [x] 完成可复现的演示与验收 (`scripts/demo.py`, CLI 工具)
+### P0：双人协同与核心规范 (已全部完成 ✅)
+- [x] **定义 SKILL.md 规范体系**：明确虚拟店员“麦麦”人设与执行铁律，定义单人/双人/凑单技能触发规则
+- [x] **双人/多人协同点餐建模**：在 `mcmeal/models.py` 中新增 `MemberPreference`, `MemberShare`, `GroupOrderPlan`
+- [x] **实现公平分摊数学算法**：在 `mcmeal/optimizer.py` 中实现独立餐品防串味、共享小食按比例公平减免
+- [x] **官方上新标签动态识别**：`mcp_client.py` 动态解析 `query-meals` 中的 `"tags": ["上新"]` 属性并展示
+- [x] **数据可信分级体系**：定义 `LIVE_VERIFIED`, `CACHED`, `ESTIMATED`, `MOCK` 严格数据标识
+- [x] **更新 README.md 与 MCP_INTEGRATION.md**：补充真实接口交互证据链、分摊公式与时序图
+- [x] **单元测试验证**：`tests/test_optimizer.py` 新增双人协同与分摊测试用例，100% 通过
 
-## 双人任务分工
+### P1：用户记忆与智能偏好 (进行中 🚀)
+- [x] 建立轻量级 SQLite 记忆持久化机制 (`mcmeal/memory.py`)
+- [x] 标记“用户明确表达 (user-stated)”与“系统推断 (system-inferred)”
+- [x] 提供透明查看与随时清除记忆的功能（尊重用户隐私与数据安全）
+- [x] 与 Agent 点餐流程联动（自动读取常用偏好、排除历史忌口）
 
-| 任务 | 负责人 | 状态 | 验收标准 |
-|---|---|---|---|
-| 仓库与环境检查 | 待分配 | 待开始 | 输出仓库状态、启动方式和风险 |
-| 官方 MCP 能力核验 | 待分配 | 待开始 | 记录真实工具清单和验证结果 |
-| 产品与推荐流程 | 待分配 | 待开始 | 根据实际代码状态确定验收标准 |
-| UI 与用户体验 | 待分配 | 待开始 | 根据现有实现确定验收标准 |
-| 测试与比赛材料 | 待分配 | 待开始 | 测试结果和提交清单可复核 |
+### P2：外送拼单与多渠道扩展 (已就绪 ✅)
+- [x] 麦乐送 39 元免外送费最优凑单算法 (`optimize_delivery_pooling`)
+- [x] 接入营养成分数据库 (`list-nutrition-foods`) 160 款餐品卡路里与宏量营养素管控
+- [x] 命令行高颜值双人模式 (`python -m mcmeal.cli --duo`)
+- [x] 场景演示脚本完整呈现 (`python scripts/demo.py`)
 
-## 当前阻塞点
-- WorkBuddy 项目页面提示“网络异常，项目暂时无法加载”；是否为平台 Bug、网络问题或项目模块故障尚待确认。
-- GitHub 仓库是否包含全部最新代码尚待确认。
-- 不要因为 WorkBuddy 页面故障就删除或重建项目。
+### P3：大赛正式提交与发布 (待触发 ⏳)
+- [ ] 确保仓库在 10月25日 23:59 前切换为 Public 公开状态
+- [ ] 按照大赛官方 Issue 模板在 `M-China/mcd-developer-innovation-challenge` 提交项目 Issue
+- [ ] 邀请社区与团队成员体验并点亮 Star

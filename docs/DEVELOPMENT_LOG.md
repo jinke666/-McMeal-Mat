@@ -25,3 +25,15 @@
   7. 配置 GitHub Actions CI 工作流，保障跨平台版本自动化测试。
 - 验证方式：`python -m unittest discover -s tests -v`（6/6 OK）；`python scripts/demo.py`（三大场景运行正常）。
 
+## 2026-10-12：升级为“麦麦搭子”v1.0 (双人协同点餐 + 公平分摊 + SKILL 规范)
+- 负责人：keke & 合作者
+- 核心进展：
+  1. **产品定位重塑**：针对榜单前 40 名中单人省钱工具严重同质化痛点，重构为“麦麦搭子”，主打双人/多人协同点餐与公平分摊算法；
+  2. **双人运筹算法与模型升级**：在 `models.py` 与 `optimizer.py` 中引入 `MemberPreference`, `MemberShare`, `GroupOrderPlan`，实现了独立餐品忌口隔离与共享小食按比例公平减免的数学模型；
+  3. **官方上新标签动态识别**：`mcp_client.py` 动态解析 `query-meals` 返回中的 `"tags": ["上新"]` 属性，提供可实证的尝鲜推荐；
+  4. **标准 Agent SKILL 规范发布**：创建根目录 `SKILL.md`，定义虚拟店员“麦麦”人设、执行铁律及触发时机；
+  5. **严格数据可信标准落地**：建立 `LIVE_VERIFIED`、`CACHED`、`ESTIMATED`、`MOCK` 标识体系，打通真实算价接口 `calculate-price`；
+  6. **文档与演示矩阵更新**：全面重构 `README.md`、`workbuddy.md`、`MCP_INTEGRATION.md`、`TASKS.md`，并在 `cli.py` 与 `scripts/demo.py` 中加入双人协同场景。
+- 验证方式：全量单元测试 7/7 通过；运行 `python -m mcmeal.cli --duo` 与 `python scripts/demo.py` 验证双人方案与账单。
+
+

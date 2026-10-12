@@ -37,14 +37,26 @@ def run_scenarios():
         print_plan(idx, plan)
 
     print(f"\n{YELLOW}================== 场景 3：办公室麦乐送 39 元免配凑单 =================={RESET}")
-    # 模拟张三点了一个巨无霸 26 元，距离 39 元起送还差 13 元
     cart = [item for item in DEFAULT_MENU_ITEMS if item.name == "巨无霸"]
     res3 = agent.solve_delivery_pooling(cart, min_spend=39.0)
     print(f"当前购物车: 【巨无霸】(¥{cart[0].price})")
     print(f"目标免配起送金额: ¥{res3['target_spend']}")
     print(f"算法推荐凑单方案: {[i.name for i in res3['recommended_additions']]}")
     print(f"凑单分析: {res3['explanation']}")
-    print(f"\n{GREEN}全部场景演示完成！McMeal-Mate 运行正常。{RESET}\n")
+
+    print(f"\n{YELLOW}================== 场景 4：双人协同点餐与公平分摊 (核心差异化) =================={RESET}")
+    from mcmeal.models import MemberPreference
+    from mcmeal.cli import print_group_plan
+    members = [
+        MemberPreference(name="小明(爱吃肉/吃辣)", budget=35.0, is_spicy_ok=True),
+        MemberPreference(name="小红(不吃辣/要冷饮)", budget=30.0, is_spicy_ok=False, excluded_items=["麦辣鸡腿汉堡", "麦辣鸡翅-2块"])
+    ]
+    res4 = agent.process_group_order(members)
+    print(f"🤖 麦麦店员: {res4.get('maimai_speech')}")
+    for idx, plan in enumerate(res4.get("plans", []), 1):
+        print_group_plan(idx, plan)
+
+    print(f"\n{GREEN}全部场景演示完成！麦麦搭子 McMeal-Mate 运行正常。{RESET}\n")
 
 if __name__ == "__main__":
     run_scenarios()

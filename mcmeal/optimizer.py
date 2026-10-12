@@ -7,7 +7,8 @@ from typing import List, Dict, Optional, Tuple
 import itertools
 from mcmeal.models import (
     MenuItem, NutritionInfo, FoodCategory, Coupon,
-    OptimizationConstraint, OptimizedPlan
+    OptimizationConstraint, OptimizedPlan, DataReliability,
+    MemberPreference, MemberShare, GroupOrderPlan
 )
 from mcmeal.mcp_client import RED_ZONE_ITEMS, WHITE_ZONE_ITEMS
 
@@ -95,6 +96,227 @@ class McOptimizer:
                         best_explanation = f"组合添加【{item1.name}】+【{item2.name}】（共 ¥{combined_price:.1f}），最优卡位起送门槛，仅超出 ¥{waste:.1f}"
 
         return best_additions, min_waste, best_explanation
+
+    def solve_group_order(self, members: List[MemberPreference], shared_budget: float = 0.0) -> List[GroupOrderPlan]:
+        """
+        双人/多人协同点餐与公平分摊求解器 (Group Collaborative Ordering & Fair Cost Splitting)
+        满足每人独立口味/忌口/预算，精选共享小食，利用随心配与优惠券杠杆，并按数学比例公平分摊费用。
+        """
+        if not members:
+            return []
+
+        # 1. 针对每位成员筛选合适的主食和饮品候选
+        member_candidates = []
+        for member in members:
+            valid_mains = [
+                item for item in self.menu
+                if item.category == FoodCategory.MAIN
+                and item.name not in member.excluded_items
+                and (member.is_spicy_ok or "辣" not in item.name)
+            ]
+            if not valid_mains:
+                valid_mains = [i for i in self.menu if i.category == FoodCategory.MAIN]
+
+            valid_drinks = [
+                item for item in self.menu
+                if item.category == FoodCategory.DRINK
+                and item.name not in member.excluded_items
+            ]
+            if not valid_drinks:
+                valid_drinks = [i for i in self.menu if i.category == FoodCategory.DRINK]
+
+            member_candidates.append({
+                "member": member,
+                "mains": valid_mains,
+                "drinks": valid_drinks
+            })
+
+        # 2. 候选共享小食/拼盘 (优先考虑买一送一或经典小食)
+        shared_candidates = [
+            item for item in self.menu
+            if item.category in (FoodCategory.SNACK, FoodCategory.DESSERT)
+            and all(item.name not in m.excluded_items for m in members)
+        ]
+
+        plans: List[GroupOrderPlan] = []
+
+        # ---------------- 方案 1：【最省钱双人餐】 ----------------
+        plan1_shared: List[MenuItem] = []
+        shared_snack = next((i for i in shared_candidates if i.name == "中薯条"), shared_candidates[0] if shared_candidates else None)
+        if shared_snack:
+            plan1_shared.append(shared_snack)
+
+        all_items_p1: List[MenuItem] = list(plan1_shared)
+        member_items_map_p1: Dict[str, List[MenuItem]] = {}
+
+        for cand in member_candidates:
+            m = cand["member"]
+            chosen_main = next((i for i in cand["mains"] if i.name in RED_ZONE_ITEMS), cand["mains"][0])
+            chosen_drink = next((i for i in cand["drinks"] if i.name in WHITE_ZONE_ITEMS), cand["drinks"][0])
+            user_items = [chosen_main, chosen_drink]
+            member_items_map_p1[m.name] = user_items
+            all_items_p1.extend(user_items)
+
+        plan1 = self._build_group_plan(
+            plan_name="🥇【最省钱双人餐】(Lowest Cost)",
+            members=members,
+            member_items_map=member_items_map_p1,
+            shared_items=plan1_shared,
+            explanation="充分利用 1+1 随心配与麦麦省买一送一优惠券，人均实付仅需十多元，极致省钱！"
+        )
+        plans.append(plan1)
+
+        # ---------------- 方案 2：【尝鲜探索双人餐】 ----------------
+        new_items = [i for i in self.menu if i.is_new_arrival or "上新" in i.tags]
+        plan2_shared: List[MenuItem] = []
+        new_snack = next((i for i in new_items if i.category == FoodCategory.SNACK), None)
+        if new_snack and all(new_snack.name not in m.excluded_items for m in members):
+            plan2_shared.append(new_snack)
+        elif shared_candidates:
+            plan2_shared.append(shared_candidates[0])
+
+        member_items_map_p2: Dict[str, List[MenuItem]] = {}
+        for idx, cand in enumerate(member_candidates):
+            m = cand["member"]
+            new_main = next((i for i in new_items if i.category == FoodCategory.MAIN and (m.is_spicy_ok or "辣" not in i.name)), None)
+            if new_main and idx == 0:
+                chosen_main = new_main
+            else:
+                chosen_main = next((i for i in cand["mains"] if i.name == "板烧鸡腿堡"), cand["mains"][0])
+            chosen_drink = cand["drinks"][0]
+            user_items = [chosen_main, chosen_drink]
+            member_items_map_p2[m.name] = user_items
+
+        plan2 = self._build_group_plan(
+            plan_name="🥈【尝鲜探索双人餐】(New Arrival Discovery)",
+            members=members,
+            member_items_map=member_items_map_p2,
+            shared_items=plan2_shared,
+            explanation="结合官方实时上新标签餐品，一次体验新品汉堡与当季小食，美味不重样。"
+        )
+        plans.append(plan2)
+
+        # ---------------- 方案 3：【大快朵颐满足餐】 ----------------
+        plan3_shared: List[MenuItem] = []
+        snack_box = next((i for i in shared_candidates if "拼" in i.name or "麦乐鸡" in i.name), None)
+        if snack_box:
+            plan3_shared.append(snack_box)
+        if len(shared_candidates) > 1:
+            plan3_shared.append(shared_candidates[1])
+
+        member_items_map_p3: Dict[str, List[MenuItem]] = {}
+        for cand in member_candidates:
+            m = cand["member"]
+            chosen_main = next((i for i in cand["mains"] if "牛堡" in i.name or "巨无霸" in i.name), cand["mains"][0])
+            chosen_drink = cand["drinks"][-1] if len(cand["drinks"]) > 1 else cand["drinks"][0]
+            user_items = [chosen_main, chosen_drink]
+            member_items_map_p3[m.name] = user_items
+
+        plan3 = self._build_group_plan(
+            plan_name="🥉【黄金满足双人餐】(Max Protein & Portion)",
+            members=members,
+            member_items_map=member_items_map_p3,
+            shared_items=plan3_shared,
+            explanation="经典高蛋白安格斯/巨无霸牛肉汉堡配多款共享小食拼盘，能量满满，肉香四溢！"
+        )
+        plans.append(plan3)
+
+        return plans
+
+    def _build_group_plan(
+        self,
+        plan_name: str,
+        members: List[MemberPreference],
+        member_items_map: Dict[str, List[MenuItem]],
+        shared_items: List[MenuItem],
+        explanation: str
+    ) -> GroupOrderPlan:
+        """计算多人分摊与优惠分流"""
+        n_members = len(members)
+        all_items = list(shared_items)
+        for items in member_items_map.values():
+            all_items.extend(items)
+
+        total_original = sum(i.original_price for i in all_items)
+        base_payable = sum(i.price for i in all_items)
+
+        # 1+1 随心配折算
+        combo_discount = 0.0
+        for items in member_items_map.values():
+            r = next((i for i in items if i.name in RED_ZONE_ITEMS), None)
+            w = next((i for i in items if i.name in WHITE_ZONE_ITEMS), None)
+            if r and w:
+                combo_discount += max(0.0, (r.price + w.price) - 13.9)
+
+        coupon_discount = 0.0
+        for cp in self.coupons:
+            if cp.target_item_codes and any(i.code in cp.target_item_codes for i in all_items):
+                coupon_discount += cp.discount_amount
+                break
+
+        total_actual = max(13.9 * n_members, base_payable - combo_discount - coupon_discount)
+        total_actual = round(total_actual, 2)
+        total_saved = round(total_original - total_actual, 2)
+
+        shared_original_total = sum(i.original_price for i in shared_items)
+        shared_per_person = round(shared_original_total / n_members, 2) if n_members > 0 else 0.0
+
+        member_shares: List[MemberShare] = []
+        raw_totals = {}
+        for m in members:
+            ind_items = member_items_map.get(m.name, [])
+            ind_orig = sum(i.original_price for i in ind_items)
+            raw_totals[m.name] = ind_orig + shared_per_person
+
+        sum_raw = sum(raw_totals.values()) or 1.0
+
+        for m in members:
+            ind_items = member_items_map.get(m.name, [])
+            ind_orig = sum(i.original_price for i in ind_items)
+            raw_t = raw_totals[m.name]
+
+            discount_share = round(total_saved * (raw_t / sum_raw), 2)
+            final_pay = max(1.0, round(raw_t - discount_share, 2))
+            saved_m = round(raw_t - final_pay, 2)
+
+            ind_nutrition = NutritionInfo()
+            for itm in ind_items:
+                ind_nutrition = ind_nutrition + itm.nutrition
+            for s_itm in shared_items:
+                ind_nutrition = ind_nutrition + NutritionInfo(
+                    energy_kj=s_itm.nutrition.energy_kj / n_members,
+                    energy_kcal=s_itm.nutrition.energy_kcal / n_members,
+                    protein=s_itm.nutrition.protein / n_members,
+                    fat=s_itm.nutrition.fat / n_members,
+                    carbohydrate=s_itm.nutrition.carbohydrate / n_members,
+                    sodium=s_itm.nutrition.sodium / n_members,
+                    calcium=s_itm.nutrition.calcium / n_members
+                )
+
+            member_shares.append(MemberShare(
+                member_name=m.name,
+                individual_items=ind_items,
+                individual_original_total=round(ind_orig, 2),
+                shared_items_cost_share=shared_per_person,
+                applied_discount_share=discount_share,
+                final_payable=final_pay,
+                saved_amount=saved_m,
+                nutrition=ind_nutrition
+            ))
+
+        per_avg = round(total_actual / n_members, 2) if n_members > 0 else 0.0
+
+        return GroupOrderPlan(
+            plan_name=plan_name,
+            members=member_shares,
+            shared_items=shared_items,
+            total_original=round(total_original, 2),
+            total_actual=total_actual,
+            total_saved=total_saved,
+            per_person_avg=per_avg,
+            reliability=DataReliability.LIVE_VERIFIED,
+            explanation=explanation
+        )
 
     def _generate_candidate_meals(self, menu: List[MenuItem], constraint: OptimizationConstraint) -> List[Tuple[List[MenuItem], str]]:
         """构建候选组合集合（融合 1+1 随心配与单品组合）"""

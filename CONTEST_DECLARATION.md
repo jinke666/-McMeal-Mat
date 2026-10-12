@@ -2,7 +2,7 @@
 
 ## 项目基本信息
 
-- **项目名称**：McMeal-Mate (麦膳精算师 —— 麦门运筹学算法配餐与省钱决策系统)
+- **项目名称**：McMeal-Mate (麦麦搭子 —— 双人协同点餐与公平分摊智能体 Skill)
 - **参赛团队/开发者**：jinke666 & 合作者
 - **项目仓库**：https://github.com/jinke666/-McMeal-Mat
 

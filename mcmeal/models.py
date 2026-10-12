@@ -1,10 +1,18 @@
 """
-数据模型定义模块
+数据模型定义模块 (Models)
+定义麦麦搭子中的餐品、营养素、优惠券、数据可信度及双人/多人协同点餐数据结构
 """
 
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import List, Optional, Dict, Any
+
+class DataReliability(str, Enum):
+    """数据可信度标记 (遵从 v1.0 真实性规范)"""
+    LIVE_VERIFIED = "LIVE_VERIFIED"  # 实时调用官方 MCP 接口核验成功
+    CACHED = "CACHED"                # 缓存数据，附带更新时间
+    ESTIMATED = "ESTIMATED"          # 本地算法试算/估算
+    MOCK = "MOCK"                    # 离线沙箱模拟数据
 
 class FoodCategory(str, Enum):
     """餐品类别"""
@@ -48,10 +56,14 @@ class MenuItem:
     description: str = ""
     image_url: str = ""
     is_available: bool = True
+    tags: List[str] = field(default_factory=list)      # 官方标签，如 ["上新", "心形薯饼"]
+    is_new_arrival: bool = False                       # 是否官方新品
 
     def __post_init__(self):
         if self.original_price <= 0:
             self.original_price = self.price
+        if "上新" in self.tags:
+            self.is_new_arrival = True
 
 @dataclass
 class Coupon:
@@ -68,19 +80,20 @@ class Coupon:
 
 @dataclass
 class OptimizationConstraint:
-    """多约束背包优化参数"""
+    """单人多约束背包优化参数"""
     max_budget: float = 999.0                   # 最大预算上限 (元)
     min_items: int = 1                          # 至少包含几件餐品
-    required_categories: List[FoodCategory] = field(default_factory=list) # 必须包含的品类(如必须有主食和饮料)
+    required_categories: List[FoodCategory] = field(default_factory=list) # 必须包含的品类
     max_calories: Optional[float] = None        # 最高热量上限 (kcal)
     min_protein: Optional[float] = None         # 最低蛋白质含量 (g)
     max_sodium: Optional[float] = None          # 最高钠含量 (mg)
     preferred_items: List[str] = field(default_factory=list) # 用户明确指定的必点餐品
     excluded_items: List[str] = field(default_factory=list)  # 用户明确忌口不吃的餐品
+    prefer_new_arrivals: bool = False           # 优先探索官方新品
 
 @dataclass
 class OptimizedPlan:
-    """运筹优化产出的推荐方案"""
+    """单人运筹优化产出的推荐方案"""
     plan_name: str
     items: List[MenuItem]
     original_total: float
@@ -91,6 +104,45 @@ class OptimizedPlan:
     applied_coupons: List[Coupon] = field(default_factory=list)
     explanation: str = ""
     score: float = 0.0
+    reliability: DataReliability = DataReliability.LIVE_VERIFIED
+
+# ================= 多人协同点餐数据结构 =================
+
+@dataclass
+class MemberPreference:
+    """协同成员个人偏好"""
+    name: str
+    budget: float = 35.0
+    preferred_items: List[str] = field(default_factory=list)
+    excluded_items: List[str] = field(default_factory=list)
+    is_spicy_ok: bool = True
+    prefer_drink: bool = True
+    notes: str = ""
+
+@dataclass
+class MemberShare:
+    """协同成员分摊明细"""
+    member_name: str
+    individual_items: List[MenuItem]
+    individual_original_total: float
+    shared_items_cost_share: float
+    applied_discount_share: float
+    final_payable: float
+    saved_amount: float
+    nutrition: NutritionInfo = field(default_factory=NutritionInfo)
+
+@dataclass
+class GroupOrderPlan:
+    """多人/双人协同点餐组合方案"""
+    plan_name: str
+    members: List[MemberShare]
+    shared_items: List[MenuItem]
+    total_original: float
+    total_actual: float
+    total_saved: float
+    per_person_avg: float
+    reliability: DataReliability = DataReliability.LIVE_VERIFIED
+    explanation: str = ""
 
 @dataclass
 class StoreInfo:
