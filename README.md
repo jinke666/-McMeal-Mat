@@ -8,10 +8,10 @@
   </p>
   <p align="center">
     <a href="#-核心亮点"><img src="https://img.shields.io/badge/Python-3.9+-blue.svg" alt="Python Version"></a>
-    <a href="#-参赛说明"><img src="https://img.shields.io/badge/McDonald's-1024_Challenge-FFC72C.svg" alt="1024 Challenge"></a>
-    <a href="#-规范标准"><img src="https://img.shields.io/badge/Skill-Agent_Specification-purple.svg" alt="Skill Standard"></a>
-    <a href="#-算法架构"><img src="https://img.shields.io/badge/Algorithm-Fair_Splitting_%26_Knapsack-orange.svg" alt="Algorithm"></a>
-    <a href="#-mcp-能力"><img src="https://img.shields.io/badge/MCP-Streamable_HTTP-green.svg" alt="MCP"></a>
+    <a href="#-核心亮点"><img src="https://img.shields.io/badge/McDonald's-1024_Challenge-FFC72C.svg" alt="1024 Challenge"></a>
+    <a href="#-系统架构与-skill-设计"><img src="https://img.shields.io/badge/Skill-Agent_Specification-purple.svg" alt="Skill Standard"></a>
+    <a href="#-系统架构与-skill-设计"><img src="https://img.shields.io/badge/Algorithm-Fair_Splitting_%26_Knapsack-orange.svg" alt="Algorithm"></a>
+    <a href="#-系统架构与-skill-设计"><img src="https://img.shields.io/badge/MCP-Streamable_HTTP-green.svg" alt="MCP"></a>
   </p>
 </p>
 
@@ -38,7 +38,7 @@
 - 🧮 **硬核运筹学背包优化引擎**：
   将配餐抽象为**多约束 0-1 背包问题与动态规划模型**，自动识别随心配 1+1（红区+白区 13.9 元）等效代换，穷尽单品券与满减券最优解，常态化砍出 **2.8 折 ~ 4.5 折** 极致优惠！
 - 🆕 **基于官方实时标签的新品发现 (Verifiable New Arrivals)**：
-  对接真实 `query-meals` 接口，自动捕获官方携带 `"tags": ["上新"]` 的当季新品（如龙焰鸡腿堡、月下相思扭扭薯），让用户尝鲜有据可查。
+  对接真实 `query-meals` 接口，自动捕获官方携带 `"tags": ["上新"]` 的当季新品（如龙焰鸡腿堡、心形薯饼），让用户尝鲜有据可查。
 - 🤝 **免外送费最优凑单算法 (Delivery Pooling)**：
   面对 39 元免配门槛，算法毫秒级计算最优填补餐品，将溢出浪费金额控制在 **1 元以内**。
 - 🥗 **极客控卡与宏量营养把关**：
@@ -48,39 +48,21 @@
 
 ---
 
-## 🛠️ 系统架构与 Skill 双层设计 (Architecture)
+## 🛠️ 系统架构与 Skill 设计 (Architecture)
 
-麦麦搭子采用符合 Agent 生态标准的双层设计：
+麦麦搭子采用高内聚分层架构，将 Agent 交互、运筹求解与官方 MCP 深度解耦：
 
 ```mermaid
-graph TD
-    User([用户自然语言意图 / 双人拼单]) --> MaiMai[虚拟店员 麦麦 Skill 入口 (SKILL.md)]
-    
-    subgraph AgentSkill ["Agent Skill 协调层"]
-        MaiMai --> Parser[意图与双人偏好解析器]
-        Parser --> Memory[长期记忆与偏好管理 (用户告知 vs 系统推测)]
-    end
-
-    subgraph CoreEngine ["McMeal-Mate 运筹算法引擎"]
-        Parser --> Optimizer[McOptimizer 运筹求解引擎]
-        Optimizer --> Knapsack["单人多约束背包算法 (Knapsack DP)"]
-        Optimizer --> DuoPlanner["双人协同推荐 + 共享小食分离"]
-        Optimizer --> FairSplit["数学级公平分摊算法 (Fair Allocation)"]
-        Optimizer --> DeliveryPool["免外送费 39 元卡位凑单算法"]
-    end
-
-    subgraph MCP ["麦当劳官方 MCP 服务 (https://mcp.mcd.cn)"]
-        MaiMai --> M1[now-time-info & campaign-calendar 时间/日历]
-        MaiMai --> M2[auto-bind-coupons 一键秒领优惠券]
-        MaiMai --> M3[query-nearby-stores & query-meals 门店与在售菜单]
-        MaiMai --> M4[list-nutrition-foods 官方 160 款营养库]
-        Optimizer --> M5[calculate-price 官方真实验算 (LIVE_VERIFIED)]
-    end
-
-    M1 & M2 & M3 & M4 --> Optimizer
-    Optimizer --> Report[高颜值推荐报告: 最省钱双人餐 / 尝鲜探索餐 / 黄金满足餐]
-    Report --> User
+flowchart LR
+    User([用户自然语言意图 / 双人拼单]) --> Skill["麦麦 Skill 交互层\n(人设表达 / 口味解析 / 记忆持久化)"]
+    Skill --> Engine["运筹求解引擎\n(双人协同 / 背包优化 / 公平分摊)"]
+    Engine <--> MCP["麦当劳官方 MCP 服务\n(活动日历 / 资产领券 / 实时菜单 / 闭环核价)"]
+    Engine --> Output([双人方案与公平 AA 账单])
 ```
+
+- **Skill 交互层 (`SKILL.md`)**：定义虚拟店员“麦麦”人设与执行铁律，集成 SQLite3 长期偏好记忆（区分主动告知与系统推测，支持随时隐私擦除）；
+- **运筹求解引擎 (`mcmeal/`)**：实现多约束背包剪枝、独立餐品忌口隔离与数学级公平分摊模型；
+- **MCP 服务桥接 (`https://mcp.mcd.cn`)**：无缝对接时间日历、自动领券、在售餐品拉取与 `calculate-price` 官方真实算价验算。
 
 ---
 
@@ -104,7 +86,7 @@ $env:MCD_MCP_TOKEN="YOUR_MCD_MCP_TOKEN"
 # Linux / macOS
 export MCD_MCP_TOKEN="YOUR_MCD_MCP_TOKEN"
 ```
-> 💡 *注：若未配置 Token，系统会自动转入内置离线高仿真沙箱数据，单测与算法功能 100% 可用。*
+> 💡 *注：若未配置 Token，系统会自动转入内置离线高仿真沙箱数据，全部功能与算法 100% 可用。*
 
 ### 3. 一键体验演示模式
 
@@ -124,6 +106,10 @@ python -m mcmeal.cli -b 25 -p "预算 25 元想吃汉堡和可乐"
 
 # 场景 3：办公室麦乐送免外送费 39 元最优凑单算法
 python -m mcmeal.cli --pool
+
+# 场景 4：查看或一键清除长期偏好记忆 (隐私保障)
+python -m mcmeal.cli --view-memory
+python -m mcmeal.cli --clear-memory
 ```
 
 ---
@@ -134,8 +120,8 @@ python -m mcmeal.cli --pool
 
 ```text
 ==================================================================
-  🍔  McMeal-Mate (麦膳精算师) —— 麦门运筹学算法配餐系统  🍔
-       基于多约束背包算法与麦当劳 MCP 的极致省钱决策 Agent
+  🍔  McMeal-Mate (麦麦搭子) —— 双人协同点餐与公平分摊智能体  🍔
+        基于麦当劳官方 MCP 与运筹学算法打造的可爱点餐店员
 ==================================================================
 
 >>> 演示模式：双人协同点餐与公平分摊 (符合 v1.0 规格书 2.2 节) <<<
@@ -166,60 +152,3 @@ python -m mcmeal.cli --pool
   💰 整单原价: ¥81.5   ➡️  整单实付: ¥27.8   👥 人均实付: ¥13.9   🎉 全员立省: ¥53.7
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
-
----
-
-## 🎯 目标用户群体 (Target Audience)
-
-1. **写字楼拼单同事与情侣好友**：告别谁多付、谁占便宜的尴尬，一键生成公平到角分的 AA 账单；
-2. **精打细算的麦门信徒 & 学生党**：在有限预算内追求极致性价比，用算法挖掘隐藏神价；
-3. **尝鲜探索派**：实时追踪官方上新标签，第一时间试吃最新餐品；
-4. **久坐/健身/身材管控的开发者**：利用麦当劳权威营养库，科学平衡卡路里与蛋白质配比。
-
----
-
-## 🧪 单元测试 (Testing)
-
-本项目包含完备的自动化单测，覆盖模型数据结构、单人多约束背包、双人协同分摊与免配凑单：
-
-```bash
-python -m unittest discover -s tests -v
-```
-
-测试执行结果：
-```text
-test_coupon_properties (test_models.TestModels.test_coupon_properties) ... ok
-test_menu_item_defaults (test_models.TestModels.test_menu_item_defaults) ... ok
-test_nutrition_addition (test_models.TestModels.test_nutrition_addition) ... ok
-test_solve_budget_constraint (test_optimizer.TestOptimizer.test_solve_budget_constraint) ... ok
-test_solve_calorie_constraint (test_optimizer.TestOptimizer.test_solve_calorie_constraint) ... ok
-test_solve_delivery_pooling (test_optimizer.TestOptimizer.test_solve_delivery_pooling) ... ok
-test_solve_group_order (test_optimizer.TestOptimizer.test_solve_group_order) ... ok
-
-----------------------------------------------------------------------
-Ran 7 tests in 0.009s
-
-OK
-```
-
----
-
-## 📋 大赛规范文件索引 (Contest Compliance)
-
-本项目严格遵守麦当劳程序员创意开发大赛要求，包含以下规范文件：
-
-- [SKILL.md](./SKILL.md) —— **麦麦搭子 Agent Skill 标准定义与人设工作流规范**
-- [CONTEST_DECLARATION.md](./CONTEST_DECLARATION.md) —— 原创性、合规性与信息安全参赛声明
-- [MCP_INTEGRATION.md](./MCP_INTEGRATION.md) —— 麦当劳 MCP Server 详细集成说明、工具清单与时序图
-- [mcp-config.example.json](./mcp-config.example.json) —— 脱敏后的标准 MCP 配置文件
-- [workbuddy.md](./workbuddy.md) —— 腾讯 WorkBuddy 智能体联动与上下文记录
-- [README.md](./README.md) —— 项目介绍、安装方法、使用示例与目标用户
-
----
-
-## 🤝 贡献与致谢
-
-- 感谢 **麦当劳中国 (M-China)** 开放功能强大的 MCP 服务；
-- 感谢 **腾讯 WorkBuddy** 提供的智能体开发与连接器支持。
-
-⭐ **如果你觉得麦麦搭子实用又贴心，请为我们点亮右上角的 Star！麦门！🙏**
