@@ -80,7 +80,7 @@ class McDonaldMCPClient:
     def call_tool(self, tool_name: str, arguments: Dict[str, Any] = None) -> Dict[str, Any]:
         """通过 Streamable HTTP 协议调用麦当劳 MCP Tool"""
         if not self.token:
-            logger.warning("未配置 MCD_MCP_TOKEN，自动转入离线高仿真数据处理模式")
+            logger.warning("未配置 MCD_MCP_TOKEN，使用离线演示数据（非实时）")
             return self._mock_call_tool(tool_name, arguments or {})
 
         payload = {
