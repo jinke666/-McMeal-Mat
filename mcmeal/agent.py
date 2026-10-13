@@ -32,8 +32,7 @@ class McMealAgent:
         constraint = self._parse_intent(user_prompt)
         self._apply_memory_preferences(user_id, constraint, user_prompt)
 
-        # 1. 资产与日历协同 (自动领券与活动扫描)
-        coupon_claim_result = self.client.auto_bind_coupons()
+        # 1. 只读同步：查询可用优惠和活动；普通推荐不得擅自改变账户状态或自动领券
         available_coupons = self.client.get_available_coupons()
         calendar_info = self.client.get_campaign_calendar()
 
@@ -71,7 +70,7 @@ class McMealAgent:
             "constraint": constraint,
             "store": selected_store,
             "calendar": calendar_info,
-            "coupon_status": coupon_claim_result.get("message", "已同步优惠券资产"),
+            "coupon_status": "已查询当前可用优惠；未自动领取任何优惠券",
             "plans": verified_plans
         }
 
@@ -83,8 +82,7 @@ class McMealAgent:
         3. 求解协同组合方案并按数学公平比例分摊
         4. 真实算价校验与结果装配
         """
-        # 1. 资产与日历协同
-        coupon_claim_result = self.client.auto_bind_coupons()
+        # 1. 只读查询可用优惠；多人点餐推荐同样不得默认修改账户状态
         available_coupons = self.client.get_available_coupons()
 
         # 2. 门店与在售餐品
@@ -102,7 +100,7 @@ class McMealAgent:
             "members": [m.name for m in members],
             "maimai_speech": f"找到适合你们 {len(members)} 人的神仙吃法啦！独立餐品满足各自忌口，共享小食按比例公平分摊，谁也不吃亏～ 🎉",
             "store": selected_store,
-            "coupon_status": coupon_claim_result.get("message", "已同步优惠券资产"),
+            "coupon_status": "已查询当前可用优惠；未自动领取任何优惠券",
             "plans": group_plans
         }
 
