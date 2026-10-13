@@ -1,0 +1,42 @@
+name: Package McMeal-Mate Skill
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "SKILL.md"
+      - ".github/workflows/package-skill.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Build standalone Skill package
+        run: |
+          mkdir -p dist/mcmeal-mate-skill
+          cp SKILL.md dist/mcmeal-mate-skill/SKILL.md
+          cat > dist/mcmeal-mate-skill/安装说明.md <<'EOF'
+          # 麦麦搭子 Skill 安装说明
+
+          1. 在 WorkBuddy 的 Skill 管理/导入界面选择本地文件或文件夹。
+          2. 导入本目录中的 SKILL.md，并启用麦麦搭子。
+          3. 先用“午饭，30 元以内，不辣，想吃鸡肉”测试低对话成本推荐。
+          4. 如需实时门店、菜单、优惠和价格，请另外配置可用的麦当劳 MCP 连接器。
+
+          注意：Skill 文件定义的是助手行为规则，不会自动提供 MCP 凭证、实时数据或真实下单/支付能力。WorkBuddy 不同版本的导入方式可能不同；如果不支持 ZIP 导入，请解压后导入 SKILL.md。
+          EOF
+          cd dist
+          zip -r mcmeal-mate-skill.zip mcmeal-mate-skill
+      - name: Upload downloadable Skill ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcmeal-mate-skill
+          path: dist/mcmeal-mate-skill.zip
+          if-no-files-found: error
+          retention-days: 90
