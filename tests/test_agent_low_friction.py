@@ -39,7 +39,7 @@ class ReadOnlyCouponClient:
     def get_store_meals(self, store_code="TEST"):
         return DEFAULT_MENU_ITEMS
 
-    def calculate_price(self, items, coupon_ids=None, discount_deduction=0.0):
+    def calculate_price(self, items, coupon_ids=None, discount_deduction=0.0, store_code=None):
         original = sum(item.original_price for item in items)
         payable = max(0.0, sum(item.price for item in items) - discount_deduction)
         return {
