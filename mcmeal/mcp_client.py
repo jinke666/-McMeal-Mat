@@ -74,6 +74,8 @@ class McDonaldMCPClient:
         self.mcp_url = mcp_url or config.mcp_url
         self.token = token if token is not None else config.mcp_token
         self.timeout = config.timeout
+        self.last_menu_reliability = DataReliability.MOCK
+        self.last_menu_store_code = None
 
     def call_tool(self, tool_name: str, arguments: Dict[str, Any] = None) -> Dict[str, Any]:
         """通过 Streamable HTTP 协议调用麦当劳 MCP Tool"""
@@ -222,15 +224,18 @@ class McDonaldMCPClient:
                 distance=item.get("distance", 0),
                 reservation=item.get("reservation", True)
             ))
-        if not stores:
+        if not stores and not self.token:
+            # 离线演示门店，不代表真实地理位置或营业状态。
             stores.append(StoreInfo(
-                store_code="1450713",
+                store_code="MOCK-STORE",
                 be_code=None,
-                store_name="麦当劳上海黄浦华旭国际大厦餐厅",
-                address="南京东路街道西藏中路336号",
-                distance=144,
-                reservation=True
+                store_name="离线演示门店（非真实门店）",
+                address="示例地址（仅用于本地演示）",
+                distance=0,
+                reservation=False
             ))
+        elif not stores:
+            logger.warning("未查到可核验的实时门店；不使用硬编码门店冒充搜索结果")
         return stores
 
     def get_store_meals(self, store_code: str = "1450713", order_type: int = 1, be_type: int = 1) -> List[MenuItem]:
@@ -274,11 +279,15 @@ class McDonaldMCPClient:
                             is_new_arrival=("上新" in tags)
                         ))
                     if parsed_menu:
+                        self.last_menu_reliability = DataReliability.LIVE_VERIFIED
+                        self.last_menu_store_code = store_code
                         return parsed_menu
             except Exception as e:
                 logger.warning(f"获取实时菜单失败，使用离线基准菜单: {e}")
 
-        # 离线沙箱降级菜单
+        # 离线沙箱降级菜单；必须保留 MOCK 状态，不可伪装为实时菜单。
+        self.last_menu_reliability = DataReliability.MOCK
+        self.last_menu_store_code = store_code
         menu = []
         for item in DEFAULT_MENU_ITEMS:
             nutri = nutrition_map.get(item.name, item.nutrition)
@@ -294,13 +303,14 @@ class McDonaldMCPClient:
             ))
         return menu
 
-    def calculate_price(self, items: List[MenuItem], coupon_ids: List[str] = None, discount_deduction: float = 0.0) -> Dict[str, Any]:
-        """计算商品价格与实际优惠"""
-        if self.token:
+    def calculate_price(self, items: List[MenuItem], coupon_ids: List[str] = None, discount_deduction: float = 0.0, store_code: Optional[str] = None) -> Dict[str, Any]:
+        """计算商品价格与实际优惠；只对本次已核验的实时菜单尝试官方核价。"""
+        verified_store = store_code or self.last_menu_store_code
+        if self.token and self.last_menu_reliability == DataReliability.LIVE_VERIFIED and verified_store:
             payload_items = [{"productCode": item.code, "quantity": 1} for item in items]
             try:
                 res = self.call_tool("calculate-price", {
-                    "storeCode": "1450713",
+                    "storeCode": verified_store,
                     "orderType": 1,
                     "beType": 1,
                     "items": payload_items
@@ -326,7 +336,11 @@ class McDonaldMCPClient:
             "original_amount": round(original_price, 2),
             "payable_amount": round(base_price, 2),
             "discount_amount": round(discount, 2),
-            "reliability": DataReliability.ESTIMATED
+            "reliability": (
+                DataReliability.ESTIMATED
+                if self.token and self.last_menu_reliability == DataReliability.LIVE_VERIFIED
+                else DataReliability.MOCK
+            )
         }
 
     def _mock_call_tool(self, tool_name: str, args: Dict[str, Any]) -> Dict[str, Any]:
