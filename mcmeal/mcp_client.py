@@ -324,7 +324,12 @@ class McDonaldMCPClient:
                         "original_amount": round(original, 2),
                         "payable_amount": round(max(0.0, payable - discount_deduction), 2),
                         "discount_amount": round(discount, 2),
-                        "reliability": DataReliability.LIVE_VERIFIED
+                        # 远程请求未显式传入优惠券应用结果；任何本地优惠扣减都只能视为估算。
+                        "reliability": (
+                            DataReliability.LIVE_VERIFIED
+                            if not coupon_ids and discount_deduction <= 0
+                            else DataReliability.ESTIMATED
+                        )
                     }
             except Exception as e:
                 logger.warning(f"远程算价异常，回退算法核算: {e}")
