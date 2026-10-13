@@ -77,53 +77,40 @@ flowchart LR
 - **只读操作优先自动完成**：查菜单、优惠、价格和优化候选可在用户请求范围内自动进行；领券、积分兑换、下单、取消订单等有副作用的动作必须先明确授权/确认。
 - **真实性优先**：离线/模拟数据必须清楚标记；未穷尽当前候选前，不声称“全场最低价”。
 
-## 🚀 快速上手 (Quick Start)
+## 🚀 快速使用：不需要懂代码
 
-### 1. 克隆代码
+如果你只是想在 WorkBuddy 里使用麦麦，**不需要克隆仓库、不需要安装 Python，也不需要运行命令**。本项目的日常使用入口是 Skill；下面的代码运行方式只适合开发者。
+
+### 方式一：下载 Skill（推荐）
+
+1. 下载 [麦麦搭子 Skill 文件（SKILL.md）](https://raw.githubusercontent.com/jinke666/-McMeal-Mat/main/SKILL.md)。
+2. 打开 WorkBuddy 的 Skill 管理/导入入口，选择本地文件并导入这个 `SKILL.md`。如果你的 WorkBuddy 版本只支持文件夹或 ZIP 导入，请使用下方的 Skill 包；如果界面没有导入入口，再参考 WorkBuddy 当前版本的官方说明。
+3. 在 WorkBuddy 中启用“麦麦搭子”，直接说“帮我点一份 30 元以内、不辣的鸡肉午餐”即可试用。
+4. 如需查询真实门店、菜单、优惠或价格，再按 WorkBuddy 的 MCP 连接器说明配置麦当劳 MCP。没有配置连接器时，不能把推荐当成实时菜单或实时报价。
+
+> **注意**：Skill 是行为说明与工作流规则，不会凭空获得麦当劳账户权限。真实 MCP 查询能力取决于连接器配置；本仓库也不代表已经实现完整的官方下单/支付闭环。
+
+### 方式二：下载完整 Skill 包
+
+如果你不想单独下载文件，可以下载 [GitHub 仓库 ZIP](https://github.com/jinke666/-McMeal-Mat/archive/refs/heads/main.zip)，解压后只需找到根目录的 `SKILL.md` 并导入 WorkBuddy。其余 Python 代码是可选的开发组件，不是普通用户使用 Skill 的前置条件。
+
+### 方式三：开发者本地运行（可选）
+
+只有你想运行本地算法、记忆模块或调试 MCP 客户端时，才需要以下步骤。
 
 ```bash
 git clone https://github.com/jinke666/-McMeal-Mat.git mcmeal-mate
 cd mcmeal-mate
-```
-
-### 2. 运行环境配置 (可选)
-
-本项目核心算法使用 Python 3.9+ 标准库开发，无强制三方依赖。若接入麦当劳真实远程 MCP，可配置环境变量：
-
-```bash
-# Windows PowerShell
-$env:MCD_MCP_TOKEN="YOUR_MCD_MCP_TOKEN"
-
-# Linux / macOS
-export MCD_MCP_TOKEN="YOUR_MCD_MCP_TOKEN"
-```
-> 💡 *注：未配置 Token 时会使用离线示例数据验证流程和算法；它不代表当前门店的真实菜单、优惠、价格或可下单状态。*
-
-### 3. 一键体验演示模式
-
-```bash
-# 运行四大典型生活场景演示 (含单人、控卡、免配凑单、双人协同点餐)
+python -m pip install -e .
 python scripts/demo.py
 ```
 
-### 4. 命令行交互 (CLI)
+查看或清除本地记忆：
 
 ```bash
-# 场景 1：双人协同点餐与精准分摊账单 (核心差异化功能)
-python -m mcmeal.cli --duo
-
-# 场景 2：单人 25 元预算极限省钱配餐
-python -m mcmeal.cli -b 25 -p "预算 25 元想吃汉堡和可乐"
-
-# 场景 3：办公室麦乐送免外送费 39 元最优凑单算法
-python -m mcmeal.cli --pool
-
-# 场景 4：查看或一键清除长期偏好记忆 (隐私保障)
 python -m mcmeal.cli --view-memory
 python -m mcmeal.cli --clear-memory
 ```
-
----
 
 ## 📊 终端运行效果演示 (CLI Preview)
 
