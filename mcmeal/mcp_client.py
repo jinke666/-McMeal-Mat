@@ -136,15 +136,62 @@ class McDonaldMCPClient:
         return nutrition_map
 
     def get_available_coupons(self) -> List[Coupon]:
-        """获取当前可领取的麦麦省优惠券"""
+        """读取可用优惠。离线样例仅用于演示；在线响应无法识别时不伪造优惠。"""
+        if not self.token:
+            # 离线演示数据：仅用于验证本地优化流程，不代表真实可领取优惠。
+            return [
+                Coupon("MOCK-CP001", "示例：中薯条买一送一", coupon_type="BOGO", discount_amount=14.5, target_item_codes=["S001"]),
+                Coupon("MOCK-CP002", "示例：9.9元中杯冰美式", coupon_type="SPECIAL_PRICE", discount_amount=2.1, target_item_codes=["D004"]),
+                Coupon("MOCK-CP003", "示例：双层吉士堡立减5元", coupon_type="CASH_OFF", discount_amount=5.0, min_spend=20.0, target_item_codes=["M001"]),
+                Coupon("MOCK-CP004", "示例：麦麦省满39减8元", coupon_type="CASH_OFF", discount_amount=8.0, min_spend=39.0),
+                Coupon("MOCK-CP005", "示例：麦乐鸡5块特惠9.9元", coupon_type="SPECIAL_PRICE", discount_amount=3.6, target_item_codes=["S002"]),
+            ]
+
         res = self.call_tool("available-coupons")
-        coupons = [
-            Coupon("CP001", "中薯条买一送一", coupon_type="BOGO", discount_amount=14.5, target_item_codes=["S001"]),
-            Coupon("CP002", "9.9元中杯冰美式", coupon_type="SPECIAL_PRICE", discount_amount=2.1, target_item_codes=["D004"]),
-            Coupon("CP003", "双层吉士堡立减5元", coupon_type="CASH_OFF", discount_amount=5.0, min_spend=20.0, target_item_codes=["M001"]),
-            Coupon("CP004", "麦麦省满39减8元", coupon_type="CASH_OFF", discount_amount=8.0, min_spend=39.0),
-            Coupon("CP005", "麦乐鸡5块特惠9.9元", coupon_type="SPECIAL_PRICE", discount_amount=3.6, target_item_codes=["S002"]),
-        ]
+        data = res.get("data") if isinstance(res, dict) else None
+        if isinstance(data, dict):
+            for key in ("coupons", "couponList", "list", "records", "items"):
+                if isinstance(data.get(key), list):
+                    data = data[key]
+                    break
+        elif isinstance(data, str):
+            # 不猜测文本表格字段，避免将未解析的响应误当成实时优惠。
+            logger.warning("可用优惠接口返回文本格式，当前未能可靠解析；不加入未经核实的优惠")
+            return []
+
+        if not isinstance(data, list):
+            logger.warning("可用优惠接口响应结构未识别；不加入未经核实的优惠")
+            return []
+
+        coupons: List[Coupon] = []
+        for item in data:
+            if not isinstance(item, dict):
+                continue
+            coupon_id = item.get("couponId") or item.get("id") or item.get("couponCode")
+            title = item.get("title") or item.get("couponName") or item.get("name")
+            if not coupon_id or not title:
+                continue
+            try:
+                discount_amount = float(item.get("discountAmount", item.get("amount", 0)) or 0)
+                min_spend = float(item.get("minSpend", item.get("minimumSpend", 0)) or 0)
+                discount_rate = float(item.get("discountRate", 1) or 1)
+            except (TypeError, ValueError):
+                logger.warning("跳过字段无法解析的优惠券响应")
+                continue
+            target_codes = item.get("targetItemCodes") or item.get("productCodes") or []
+            if not isinstance(target_codes, list):
+                target_codes = []
+            coupon_type = str(item.get("couponType") or item.get("type") or "DISCOUNT").upper()
+            coupons.append(Coupon(
+                coupon_id=str(coupon_id),
+                title=str(title),
+                coupon_type=coupon_type,
+                discount_amount=discount_amount,
+                discount_rate=discount_rate,
+                min_spend=min_spend,
+                target_item_codes=[str(code) for code in target_codes],
+                is_claimed=bool(item.get("isClaimed", item.get("claimed", True))),
+            ))
         return coupons
 
     def auto_bind_coupons(self) -> Dict[str, Any]:
