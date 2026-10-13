@@ -82,7 +82,7 @@ class McMealAgent:
             "constraint": constraint,
             "store": selected_store,
             "calendar": calendar_info,
-            "coupon_status": "已检查优惠信息；未自动领取任何优惠券"
+            "coupon_status": "已检查优惠信息；未自动领取任何优惠券",
             "plans": verified_plans
         }
 
