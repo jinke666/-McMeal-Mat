@@ -33,8 +33,8 @@
 需要调试本地算法、记忆模块或 MCP 客户端时，再运行源码：
 
 ```bash
-git clone https://github.com/jinke666/-McMeal-Mat.git
-cd -McMeal-Mat
+git clone https://github.com/jinke666/-McMeal-Mat.git mcmeal-mate
+cd mcmeal-mate
 python -m pip install -e .
 python scripts/demo.py
 ```
