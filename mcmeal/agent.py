@@ -130,7 +130,7 @@ class McMealAgent:
             "members": [m.name for m in members],
             "maimai_speech": f"我按 {len(members)} 人各自的偏好筛好了方案，也把共享餐品和分摊金额列清楚了。",
             "store": selected_store,
-            "coupon_status": "已查询当前可用优惠；未自动领取任何优惠券",
+            "coupon_status": "已检查优惠信息；未自动领取任何优惠券",
             "plans": group_plans
         }
 
