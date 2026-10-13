@@ -65,12 +65,12 @@ class McMealAgent:
 
         return {
             "query": user_prompt,
-            "maimai_speech": "哈喽！我是你的专属点餐搭档麦麦～ 已经为你核对好门店活动与优惠券啦！✨",
+            "maimai_speech": "我按你的条件先筛了一轮，下面给你一个优先推荐；价格与优惠状态以本次核验结果为准。",
             "memory_summary": self.memory.get_context_for_prompt(user_id),
             "constraint": constraint,
             "store": selected_store,
             "calendar": calendar_info,
-            "coupon_status": "已查询当前可用优惠；未自动领取任何优惠券",
+            "coupon_status": "已检查优惠信息；未自动领取任何优惠券"
             "plans": verified_plans
         }
 
@@ -98,7 +98,7 @@ class McMealAgent:
         return {
             "members_count": len(members),
             "members": [m.name for m in members],
-            "maimai_speech": f"找到适合你们 {len(members)} 人的神仙吃法啦！独立餐品满足各自忌口，共享小食按比例公平分摊，谁也不吃亏～ 🎉",
+            "maimai_speech": f"我按 {len(members)} 人各自的偏好筛好了方案，也把共享餐品和分摊金额列清楚了。",
             "store": selected_store,
             "coupon_status": "已查询当前可用优惠；未自动领取任何优惠券",
             "plans": group_plans
