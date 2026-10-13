@@ -90,9 +90,15 @@ flowchart LR
 
 > **注意**：Skill 是行为说明与工作流规则，不会凭空获得麦当劳账户权限。真实 MCP 查询能力取决于连接器配置；本仓库也不代表已经实现完整的官方下单/支付闭环。
 
-### 方式二：下载完整 Skill 包
+### 方式二：下载独立 Skill ZIP（更方便）
 
-如果你不想单独下载文件，可以下载 [GitHub 仓库 ZIP](https://github.com/jinke666/-McMeal-Mat/archive/refs/heads/main.zip)，解压后只需找到根目录的 `SKILL.md` 并导入 WorkBuddy。其余 Python 代码是可选的开发组件，不是普通用户使用 Skill 的前置条件。
+仓库会自动打包一个只包含 Skill 和安装说明的 ZIP，不需要下载整套 Python 项目：
+
+1. 打开 [麦麦 Skill 打包任务](https://github.com/jinke666/-McMeal-Mat/actions/workflows/package-skill.yml)。
+2. 进入最新一次成功的运行记录，在页面底部的 **Artifacts** 区域下载 `mcmeal-mate-skill`。
+3. 解压后，将里面的 `SKILL.md` 导入 WorkBuddy 并启用。
+
+这个 ZIP 是独立 Skill 包；麦当劳 MCP 连接器仍需按你的 WorkBuddy 环境单独配置。若打包任务还在运行，请稍等它完成后再下载。
 
 ### 方式三：开发者本地运行（可选）
 
