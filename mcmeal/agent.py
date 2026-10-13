@@ -39,7 +39,18 @@ class McMealAgent:
         # 2. 门店与餐品拉取
         stores = self.client.query_nearby_stores(city=city, keyword=keyword)
         selected_store = stores[0] if stores else None
-        store_code = selected_store.store_code if selected_store else "1450713"
+        if not selected_store:
+            return {
+                "query": user_prompt,
+                "maimai_speech": "我暂时没查到这个区域可用的门店，所以不能可靠核对菜单和价格。告诉我城市/商圈或选一家常用门店，我就接着找；其他条件不用重说。",
+                "memory_summary": self.memory.get_context_for_prompt(user_id),
+                "constraint": constraint,
+                "store": None,
+                "calendar": calendar_info,
+                "coupon_status": "已检查优惠信息；未自动领取任何优惠券",
+                "plans": [],
+            }
+        store_code = selected_store.store_code
 
         menu = self.client.get_store_meals(store_code=store_code)
 
@@ -54,7 +65,8 @@ class McMealAgent:
             calc_res = self.client.calculate_price(
                 plan.items,
                 coupon_ids=[c.coupon_id for c in plan.applied_coupons],
-                discount_deduction=max(0.0, deduction)
+                discount_deduction=max(0.0, deduction),
+                store_code=store_code,
             )
             plan.actual_total = calc_res.get("payable_amount", plan.actual_total)
             plan.original_total = calc_res.get("original_amount", plan.original_total)
@@ -88,12 +100,30 @@ class McMealAgent:
         # 2. 门店与在售餐品
         stores = self.client.query_nearby_stores(city=city, keyword=keyword)
         selected_store = stores[0] if stores else None
-        store_code = selected_store.store_code if selected_store else "1450713"
+        if not selected_store:
+            return {
+                "members_count": len(members),
+                "members": [m.name for m in members],
+                "maimai_speech": "我暂时没查到这个区域可用的门店，不能可靠比较实时菜单。告诉我城市/商圈或选一家常用门店，我就接着算。",
+                "store": None,
+                "coupon_status": "已检查优惠信息；未自动领取任何优惠券",
+                "plans": [],
+            }
+        store_code = selected_store.store_code
         menu = self.client.get_store_meals(store_code=store_code)
 
         # 3. 运筹求解双人方案
         optimizer = McOptimizer(menu=menu, coupons=available_coupons)
         group_plans = optimizer.solve_group_order(members)
+        # 多人方案目前由本地优化器计算，尚未逐单调用官方 calculate-price 复核，不能标记 LIVE_VERIFIED。
+        group_reliability = (
+            DataReliability.ESTIMATED
+            if getattr(self.client, "token", None)
+            and getattr(self.client, "last_menu_reliability", DataReliability.MOCK) == DataReliability.LIVE_VERIFIED
+            else DataReliability.MOCK
+        )
+        for plan in group_plans:
+            plan.reliability = group_reliability
 
         return {
             "members_count": len(members),
