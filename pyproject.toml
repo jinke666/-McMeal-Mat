@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "mcmeal-mate"
 version = "1.0.0"
-description = "麦膳精算师 (McMeal-Mate) —— 基于多约束背包算法与麦当劳 MCP 的极致省钱配餐与智能点餐 Agent"
+description = "麦麦搭子 (McMeal-Mate) —— 基于麦当劳 MCP 与多约束优化的低摩擦 AI 点餐搭子"
 readme = "README.md"
 requires-python = ">=3.9"
 authors = [
