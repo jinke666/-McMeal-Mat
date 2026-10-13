@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mcmeal-mate"
-version = "1.0.0"
+version = "1.1.0
 description = "麦麦搭子 (McMeal-Mate) —— 基于麦当劳 MCP 与多约束优化的低摩擦 AI 点餐搭子"
 readme = "README.md"
 requires-python = ">=3.9"
