@@ -72,7 +72,7 @@ class McMealAgent:
             plan.original_total = calc_res.get("original_amount", plan.original_total)
             plan.saved_amount = round(plan.original_total - plan.actual_total, 2)
             plan.discount_rate = round(plan.actual_total / plan.original_total, 2) if plan.original_total > 0 else 1.0
-            plan.reliability = calc_res.get("reliability", DataReliability.LIVE_VERIFIED)
+            plan.reliability = calc_res.get("reliability", DataReliability.ESTIMATED)
             verified_plans.append(plan)
 
         return {
