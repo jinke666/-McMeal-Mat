@@ -96,7 +96,6 @@ def run_cli():
     parser.add_argument("--duo", action="store_true", help="演示双人协同点餐与公平分摊 (支持不同忌口/预算)")
     parser.add_argument("--view-memory", action="store_true", help="查看麦麦当前记录的长期偏好与记忆 (透明度保障)")
     parser.add_argument("--clear-memory", action="store_true", help="一键清除麦麦记录的该用户全部偏好 (隐私遗忘权)")
-    parser.add_argument("--interactive", action="store_true", help="启动交互式对话模式")
 
     args = parser.parse_args()
     print(BANNER)
