@@ -58,6 +58,7 @@ class MenuItem:
     is_available: bool = True
     tags: List[str] = field(default_factory=list)      # 官方标签，如 ["上新", "心形薯饼"]
     is_new_arrival: bool = False                       # 是否官方新品
+    customizations: List[str] = field(default_factory=list) # 客制化制作备注，如 ["去冰", "去酸黄瓜"]
 
     def __post_init__(self):
         if self.original_price <= 0:
@@ -89,6 +90,8 @@ class OptimizationConstraint:
     max_sodium: Optional[float] = None          # 最高钠含量 (mg)
     preferred_items: List[str] = field(default_factory=list) # 用户明确指定的必点餐品
     excluded_items: List[str] = field(default_factory=list)  # 用户明确忌口不吃的餐品
+    custom_notes: List[str] = field(default_factory=list)    # 用户指定的客制化备注 (如 ["去冰", "去酸黄瓜"])
+    is_spicy_ok: bool = True                    # 是否接受辣味餐品
     prefer_new_arrivals: bool = False           # 优先探索官方新品
 
 @dataclass
@@ -105,6 +108,8 @@ class OptimizedPlan:
     explanation: str = ""
     score: float = 0.0
     reliability: DataReliability = DataReliability.LIVE_VERIFIED
+    dietary_notes: List[str] = field(default_factory=list)   # 客制化备注汇总
+    dietary_alerts: List[str] = field(default_factory=list)  # 忌口/辣味/过敏原轻提醒
 
 # ================= 多人协同点餐数据结构 =================
 
@@ -118,6 +123,8 @@ class MemberPreference:
     is_spicy_ok: bool = True
     prefer_drink: bool = True
     notes: str = ""
+    customizations: List[str] = field(default_factory=list)  # 个人备注 (如 ["去冰", "去酱"])
+    allergies: List[str] = field(default_factory=list)       # 个人过敏原/特殊忌口
 
 @dataclass
 class MemberShare:
@@ -130,6 +137,7 @@ class MemberShare:
     final_payable: float
     saved_amount: float
     nutrition: NutritionInfo = field(default_factory=NutritionInfo)
+    member_notes: List[str] = field(default_factory=list)    # 该成员的餐品备注
 
 @dataclass
 class GroupOrderPlan:
@@ -143,6 +151,8 @@ class GroupOrderPlan:
     per_person_avg: float
     reliability: DataReliability = DataReliability.LIVE_VERIFIED
     explanation: str = ""
+    dietary_notes: List[str] = field(default_factory=list)   # 团队备注汇总
+    dietary_alerts: List[str] = field(default_factory=list)  # 团队忌口轻提醒
 
 @dataclass
 class StoreInfo:

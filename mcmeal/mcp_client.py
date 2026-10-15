@@ -39,28 +39,28 @@ DEFAULT_NUTRITION_DATABASE = {
 
 # 预置标准菜单与基础定价（含官方实时'上新'新品标签）
 DEFAULT_MENU_ITEMS: List[MenuItem] = [
-    MenuItem("M001", "双层吉士汉堡", price=23.5, original_price=23.5, category=FoodCategory.MAIN, nutrition=DEFAULT_NUTRITION_DATABASE["双层吉士汉堡"]),
-    MenuItem("M002", "巨无霸", price=26.0, original_price=26.0, category=FoodCategory.MAIN, nutrition=DEFAULT_NUTRITION_DATABASE["巨无霸"]),
-    MenuItem("M003", "板烧鸡腿堡", price=24.0, original_price=24.0, category=FoodCategory.MAIN, nutrition=DEFAULT_NUTRITION_DATABASE["板烧鸡腿堡"]),
-    MenuItem("M004", "麦辣鸡腿汉堡", price=22.0, original_price=22.0, category=FoodCategory.MAIN, nutrition=DEFAULT_NUTRITION_DATABASE["麦辣鸡腿汉堡"]),
-    MenuItem("M005", "麦香鱼", price=21.0, original_price=21.0, category=FoodCategory.MAIN, nutrition=DEFAULT_NUTRITION_DATABASE["麦香鱼"]),
-    MenuItem("M006", "麦香鸡", price=14.0, original_price=14.0, category=FoodCategory.MAIN, nutrition=DEFAULT_NUTRITION_DATABASE["麦香鸡"]),
-    MenuItem("M007", "培根安格斯厚牛堡", price=36.0, original_price=36.0, category=FoodCategory.MAIN, nutrition=DEFAULT_NUTRITION_DATABASE["培根安格斯厚牛堡"]),
-    MenuItem("M008", "龙焰鸡腿堡", price=24.0, original_price=24.0, category=FoodCategory.MAIN, nutrition=DEFAULT_NUTRITION_DATABASE["板烧鸡腿堡"], tags=["上新", "韩式辣椒黄油风味"]),
-    MenuItem("S001", "中薯条", price=14.5, original_price=14.5, category=FoodCategory.SNACK, nutrition=DEFAULT_NUTRITION_DATABASE["中薯条"]),
-    MenuItem("S002", "麦乐鸡5块", price=13.5, original_price=13.5, category=FoodCategory.SNACK, nutrition=DEFAULT_NUTRITION_DATABASE["麦乐鸡5块"]),
-    MenuItem("S003", "麦辣鸡翅-2块", price=14.5, original_price=14.5, category=FoodCategory.SNACK, nutrition=DEFAULT_NUTRITION_DATABASE["麦辣鸡翅-2块"]),
-    MenuItem("S004", "大杯玉米杯", price=12.0, original_price=12.0, category=FoodCategory.SNACK, nutrition=DEFAULT_NUTRITION_DATABASE["大杯玉米杯"]),
-    MenuItem("S005", "麦麦脆汁鸡-琵琶腿", price=15.0, original_price=15.0, category=FoodCategory.SNACK, nutrition=DEFAULT_NUTRITION_DATABASE["麦麦脆汁鸡-琵琶腿"]),
-    MenuItem("S006", "心形薯饼5块", price=14.5, original_price=14.5, category=FoodCategory.SNACK, nutrition=DEFAULT_NUTRITION_DATABASE["中薯条"], tags=["上新", "心形薯饼同款比心"]),
-    MenuItem("S007", "月下相思扭扭薯", price=15.0, original_price=15.0, category=FoodCategory.SNACK, nutrition=DEFAULT_NUTRITION_DATABASE["中薯条"], tags=["上新", "口口酥脆"]),
-    MenuItem("D001", "可乐中杯", price=10.0, original_price=10.0, category=FoodCategory.DRINK, nutrition=DEFAULT_NUTRITION_DATABASE["可乐中杯"]),
-    MenuItem("D002", "无糖可口可乐中杯", price=10.0, original_price=10.0, category=FoodCategory.DRINK, nutrition=DEFAULT_NUTRITION_DATABASE["无糖可口可乐中杯"]),
-    MenuItem("D003", "阳光柠檬红茶中杯", price=11.0, original_price=11.0, category=FoodCategory.DRINK, nutrition=DEFAULT_NUTRITION_DATABASE["阳光柠檬红茶中杯"]),
-    MenuItem("D004", "冰美式中杯", price=12.0, original_price=12.0, category=FoodCategory.DRINK, nutrition=DEFAULT_NUTRITION_DATABASE["冰美式中杯"]),
-    MenuItem("D005", "纯牛奶（盒装）", price=12.0, original_price=12.0, category=FoodCategory.DRINK, nutrition=DEFAULT_NUTRITION_DATABASE["纯牛奶（盒装）"]),
-    MenuItem("P001", "香芋派", price=8.5, original_price=8.5, category=FoodCategory.DESSERT, nutrition=DEFAULT_NUTRITION_DATABASE["香芋派"]),
-    MenuItem("P002", "奥利奥麦旋风", price=14.5, original_price=14.5, category=FoodCategory.DESSERT, nutrition=DEFAULT_NUTRITION_DATABASE["奥利奥麦旋风"]),
+    MenuItem("M001", "双层吉士汉堡", price=23.5, original_price=23.5, category=FoodCategory.MAIN, nutrition=DEFAULT_NUTRITION_DATABASE["双层吉士汉堡"], image_url="https://menu-img.mcd.cn/pcm/prod/menu/20260309/product/MS_1120_320.png"),
+    MenuItem("M002", "巨无霸", price=26.0, original_price=26.0, category=FoodCategory.MAIN, nutrition=DEFAULT_NUTRITION_DATABASE["巨无霸"], image_url="https://menu-img.mcd.cn/pcm/prod/menu/20260309/product/MS_1100_320.png"),
+    MenuItem("M003", "板烧鸡腿堡", price=24.0, original_price=24.0, category=FoodCategory.MAIN, nutrition=DEFAULT_NUTRITION_DATABASE["板烧鸡腿堡"], image_url="https://menu-img.mcd.cn/pcm/prod/menu/20241008/product/MS_1406_320.png"),
+    MenuItem("M004", "麦辣鸡腿汉堡", price=22.0, original_price=22.0, category=FoodCategory.MAIN, nutrition=DEFAULT_NUTRITION_DATABASE["麦辣鸡腿汉堡"], image_url="https://menu-img.mcd.cn/pcm/prod/menu/20260325/product/MS_1440_320.png"),
+    MenuItem("M005", "麦香鱼", price=21.0, original_price=21.0, category=FoodCategory.MAIN, nutrition=DEFAULT_NUTRITION_DATABASE["麦香鱼"], image_url="https://menu-img.mcd.cn/pcm/prod/menu/20260101/product/MS_1600_320.png"),
+    MenuItem("M006", "麦香鸡", price=14.0, original_price=14.0, category=FoodCategory.MAIN, nutrition=DEFAULT_NUTRITION_DATABASE["麦香鸡"], image_url="https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_1450_320.png"),
+    MenuItem("M007", "培根安格斯厚牛堡", price=36.0, original_price=36.0, category=FoodCategory.MAIN, nutrition=DEFAULT_NUTRITION_DATABASE["培根安格斯厚牛堡"], image_url="https://menu-img.mcd.cn/pcm/prod/menu/20260309/product/MS_1106_320.png"),
+    MenuItem("M008", "龙焰鸡腿堡", price=24.0, original_price=24.0, category=FoodCategory.MAIN, nutrition=DEFAULT_NUTRITION_DATABASE["板烧鸡腿堡"], tags=["上新", "韩式辣椒黄油风味"], image_url="https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_521952_320.png"),
+    MenuItem("S001", "中薯条", price=14.5, original_price=14.5, category=FoodCategory.SNACK, nutrition=DEFAULT_NUTRITION_DATABASE["中薯条"], image_url="https://menu-img.mcd.cn/pcm/prod/menu/20250523/product/MS_G4810_320_1747877491921.png"),
+    MenuItem("S002", "麦乐鸡5块", price=13.5, original_price=13.5, category=FoodCategory.SNACK, nutrition=DEFAULT_NUTRITION_DATABASE["麦乐鸡5块"], image_url="https://menu-img.mcd.cn/pcm/prod/menu/20260529/product/MS_G1401_320.png"),
+    MenuItem("S003", "麦辣鸡翅-2块", price=14.5, original_price=14.5, category=FoodCategory.SNACK, nutrition=DEFAULT_NUTRITION_DATABASE["麦辣鸡翅-2块"], image_url="https://menu-img.mcd.cn/pcm/prod/menu/20260325/product/MS_G1700_320.png"),
+    MenuItem("S004", "大杯玉米杯", price=12.0, original_price=12.0, category=FoodCategory.SNACK, nutrition=DEFAULT_NUTRITION_DATABASE["大杯玉米杯"], image_url="https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_G4437_320.png"),
+    MenuItem("S005", "麦麦脆汁鸡-琵琶腿", price=15.0, original_price=15.0, category=FoodCategory.SNACK, nutrition=DEFAULT_NUTRITION_DATABASE["麦麦脆汁鸡-琵琶腿"], image_url="https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_9900005432_320.png"),
+    MenuItem("S006", "心形薯饼5块", price=14.5, original_price=14.5, category=FoodCategory.SNACK, nutrition=DEFAULT_NUTRITION_DATABASE["中薯条"], tags=["上新", "心形薯饼同款比心"], image_url="https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_9900016082_320.png"),
+    MenuItem("S007", "月下相思扭扭薯", price=15.0, original_price=15.0, category=FoodCategory.SNACK, nutrition=DEFAULT_NUTRITION_DATABASE["中薯条"], tags=["上新", "口口酥脆"], image_url="https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_521901_320.png"),
+    MenuItem("D001", "可乐中杯", price=10.0, original_price=10.0, category=FoodCategory.DRINK, nutrition=DEFAULT_NUTRITION_DATABASE["可乐中杯"], image_url="https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_9900008751_320.gif"),
+    MenuItem("D002", "无糖可口可乐中杯", price=10.0, original_price=10.0, category=FoodCategory.DRINK, nutrition=DEFAULT_NUTRITION_DATABASE["无糖可口可乐中杯"], image_url="https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_9900008751_320.gif"),
+    MenuItem("D003", "阳光柠檬红茶中杯", price=11.0, original_price=11.0, category=FoodCategory.DRINK, nutrition=DEFAULT_NUTRITION_DATABASE["阳光柠檬红茶中杯"], image_url="https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_G515280_320.png"),
+    MenuItem("D004", "冰美式中杯", price=12.0, original_price=12.0, category=FoodCategory.DRINK, nutrition=DEFAULT_NUTRITION_DATABASE["冰美式中杯"], image_url="https://menu-img.mcd.cn/pcm/prod/menu/20260422/product/MS_G507374_320.gif"),
+    MenuItem("D005", "纯牛奶（盒装）", price=12.0, original_price=12.0, category=FoodCategory.DRINK, nutrition=DEFAULT_NUTRITION_DATABASE["纯牛奶（盒装）"], image_url="https://menu-img.mcd.cn/pcm/prod/menu/20240731/product/MS_3755_320.png"),
+    MenuItem("P001", "香芋派", price=8.5, original_price=8.5, category=FoodCategory.DESSERT, nutrition=DEFAULT_NUTRITION_DATABASE["香芋派"], image_url="https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_G9900008752_320.gif"),
+    MenuItem("P002", "奥利奥麦旋风", price=14.5, original_price=14.5, category=FoodCategory.DESSERT, nutrition=DEFAULT_NUTRITION_DATABASE["奥利奥麦旋风"], image_url="https://menu-img.mcd.cn/pcm/prod/menu/ProductPool/product/MS_9900008754_320.gif"),
 ]
 
 # 经典随心配 1+1 组合定义 (红区 + 白区 = 13.9 元)
@@ -268,6 +268,7 @@ class McDonaldMCPClient:
                             category = FoodCategory.COMBO
 
                         nutri = nutrition_map.get(name, NutritionInfo())
+                        image = meal_info.get("image", "")
                         parsed_menu.append(MenuItem(
                             code=str(code),
                             name=name,
@@ -276,6 +277,7 @@ class McDonaldMCPClient:
                             category=category,
                             nutrition=nutri,
                             tags=tags,
+                            image_url=image,
                             is_new_arrival=("上新" in tags)
                         ))
                     if parsed_menu:
@@ -298,8 +300,11 @@ class McDonaldMCPClient:
                 original_price=item.original_price,
                 category=item.category,
                 nutrition=nutri,
-                tags=item.tags,
-                is_new_arrival=item.is_new_arrival
+                description=item.description,
+                image_url=item.image_url,
+                tags=list(item.tags),
+                is_new_arrival=item.is_new_arrival,
+                customizations=list(item.customizations)
             ))
         return menu
 

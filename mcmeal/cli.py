@@ -41,8 +41,20 @@ def print_plan(idx: int, plan):
     
     print(f"  {BOLD}餐品清单：{RESET}")
     for item in plan.items:
-        print(f"    • {item.name:<16} 单价: ¥{item.original_price:>4.1f}  |  热量: {item.nutrition.energy_kcal:>4.0f} kcal  |  蛋白质: {item.nutrition.protein:>3.0f}g")
+        custom_str = f" [{YELLOW}{','.join(item.customizations)}{RESET}]" if item.customizations else ""
+        img_str = f"\n      🖼️  {CYAN}{item.image_url}{RESET}" if item.image_url else ""
+        print(f"    • {item.name:<16}{custom_str} 单价: ¥{item.original_price:>4.1f}  |  热量: {item.nutrition.energy_kcal:>4.0f} kcal  |  蛋白质: {item.nutrition.protein:>3.0f}g{img_str}")
     
+    if getattr(plan, "dietary_notes", None):
+        print(f"  📝 {BOLD}客制化/制作备注:{RESET}")
+        for note in plan.dietary_notes:
+            print(f"    📌 {YELLOW}{note}{RESET}")
+
+    if getattr(plan, "dietary_alerts", None):
+        print(f"  ⚠️  {BOLD}忌口与过敏原提醒:{RESET}")
+        for alert in plan.dietary_alerts:
+            print(f"    🚨 {RED}{alert}{RESET}")
+
     if plan.applied_coupons:
         print(f"  {BOLD}已应用优惠：{RESET}")
         for cp in plan.applied_coupons:
@@ -67,17 +79,33 @@ def print_group_plan(idx: int, plan: GroupOrderPlan):
         print(f"  {BOLD}🍿 团队共享餐品：{RESET}")
         for s_item in plan.shared_items:
             tag_str = f" [{YELLOW}{','.join(s_item.tags)}{RESET}]" if s_item.tags else ""
-            print(f"    • {s_item.name:<16}{tag_str} 单价: ¥{s_item.original_price:>4.1f}")
+            custom_str = f" [{YELLOW}{','.join(s_item.customizations)}{RESET}]" if s_item.customizations else ""
+            img_str = f"\n      🖼️  {CYAN}{s_item.image_url}{RESET}" if s_item.image_url else ""
+            print(f"    • {s_item.name:<16}{tag_str}{custom_str} 单价: ¥{s_item.original_price:>4.1f}{img_str}")
 
     print(f"\n  {BOLD}👥 个人餐品与精准分摊账单（公平数学模型）：{RESET}")
     for m in plan.members:
         print(f"   ┌─ 👤 {BOLD}{m.member_name}{RESET}:")
         for item in m.individual_items:
             tag_str = f" [{YELLOW}{','.join(item.tags)}{RESET}]" if item.tags else ""
-            print(f"   │  • {item.name:<16}{tag_str} 单价: ¥{item.original_price:>4.1f}")
+            custom_str = f" [{YELLOW}{','.join(item.customizations)}{RESET}]" if item.customizations else ""
+            img_str = f"\n   │     🖼️  {CYAN}{item.image_url}{RESET}" if item.image_url else ""
+            print(f"   │  • {item.name:<16}{tag_str}{custom_str} 单价: ¥{item.original_price:>4.1f}{img_str}")
+        if getattr(m, "member_notes", None):
+            print(f"   │  📝 个人制作备注: {YELLOW}{', '.join(m.member_notes)}{RESET}")
         print(f"   │  💰 个人原价: ¥{m.individual_original_total:.1f} + 共享分摊: ¥{m.shared_items_cost_share:.1f} - 优惠分摊: ¥{m.applied_discount_share:.1f}")
         print(f"   │  ➡️  {GREEN}{BOLD}最终应付转账: ¥{m.final_payable:.1f}{RESET}  (立省: ¥{m.saved_amount:.1f})")
         print(f"   └─ 🥗 个人摄入: {m.nutrition.energy_kcal:.0f} kcal | 蛋白质: {m.nutrition.protein:.0f}g")
+
+    if getattr(plan, "dietary_notes", None):
+        print(f"  📝 {BOLD}全单客制化备注汇总:{RESET}")
+        for note in plan.dietary_notes:
+            print(f"    📌 {YELLOW}{note}{RESET}")
+
+    if getattr(plan, "dietary_alerts", None):
+        print(f"  ⚠️  {BOLD}全单忌口/过敏原提醒:{RESET}")
+        for alert in plan.dietary_alerts:
+            print(f"    🚨 {RED}{alert}{RESET}")
 
     print(f"{CYAN}─────────────────────────────────────────────────────────────{RESET}")
     print(f"  💰 {BOLD}整单原价:{RESET} ¥{plan.total_original:.1f}   "
@@ -153,6 +181,8 @@ def run_cli():
     print(f"{GREEN}🎫 优惠资产:{RESET} {result.get('coupon_status')}")
     if result.get("memory_summary"):
         print(f"{CYAN}🧠 记忆匹配:{RESET}\n{result.get('memory_summary')}")
+    if result.get("maimai_speech"):
+        print(f"\n{YELLOW}🤖 麦麦说:{RESET}\n{result.get('maimai_speech')}")
     
     plans = result.get("plans", [])
     if not plans:
