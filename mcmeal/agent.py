@@ -97,16 +97,23 @@ class McMealAgent:
             plan.reliability = calc_res.get("reliability", DataReliability.ESTIMATED)
             verified_plans.append(plan)
 
-        # 构造贴心、低摩擦的麦麦语音提示 (伴随式忌口与制作备注轻问询)
+        # 构造贴心、尊重选择的麦麦语音提示 (遵循核心循环：理解当下需求 -> 生成可比较方案 -> 用户自主选择)
+        is_vague = any(user_prompt.strip() == w for w in ["我要点麦当劳", "想吃麦当劳", "点餐", "我要点餐", "今天吃什么", "吃什么好", "吃啥", "麦当劳", "来份麦当劳"])
+        is_reorder = any(w in user_prompt.strip() for w in ["重新点", "重新来", "换一批", "换一套", "重选"])
+
         primary_plan = verified_plans[0] if verified_plans else None
-        if primary_plan and primary_plan.dietary_notes:
+        if is_reorder:
+            maimai_speech = "收到！这次想换个什么口味？我为你换了两套新方向的对比方案：【方案A】主打高蛋白肉食，【方案B】主打小食尝鲜。看看更喜欢哪种？或者告诉我你的具体想法～"
+        elif is_vague:
+            maimai_speech = "好呀！今天想吃汉堡、炸鸡还是健康轻食？我先为你挑选了两套可比较的方案：【方案A】是高性价比超值经典，【方案B】是均衡营养搭配。你想选哪一套？如果有明确想吃的品类、具体预算或忌口备注，随时告诉我～"
+        elif primary_plan and primary_plan.dietary_notes:
             notes_str = "、".join(primary_plan.dietary_notes)
-            maimai_speech = f"我按你的条件筛出了优先推荐，已为你标注客制化备注【{notes_str}】。如果有其他忌口或想换不辣的，随时告诉我～"
+            maimai_speech = f"我按你的条件筛出了两套【可比较方案】，已为你标注制作备注【{notes_str}】。你想选方案A还是方案B？如果有其他忌口或想换不辣的，随时告诉我～"
         elif primary_plan and primary_plan.dietary_alerts:
             alerts_str = "、".join(primary_plan.dietary_alerts)
-            maimai_speech = f"我按你的条件筛出了优先推荐。💡 方案包含【{alerts_str}】，饮品默认为常规冰饮。如果有忌口（如不吃辣/过敏原）或需要去冰/去酸黄瓜备注，随时告诉我～"
+            maimai_speech = f"我按你的条件筛出了两套【可比较方案】。💡 方案包含【{alerts_str}】，饮品默认为常规冰饮。你想选方案A还是方案B？若有忌口或需要去冰/去酸黄瓜备注，随时告诉我～"
         else:
-            maimai_speech = "我按你的条件筛出了优先推荐。💡 餐品默认为常规标准制作；若有去冰、去酸黄瓜或特殊忌口备注，随时告诉我～"
+            maimai_speech = "我按你的条件筛出了两套【可比较方案】供你对比挑选。💡 餐品默认为常规标准制作；想选哪一套，或有去冰、去酸黄瓜备注随时告诉我～"
 
         return {
             "query": user_prompt,
@@ -356,6 +363,25 @@ class McMealAgent:
             notes = "、".join(item.customizations) if item.customizations else "常规制作"
             lines.append(f"| **{item.name}** | {img_tag} | ¥{item.original_price:.1f} | {notes} | {item.nutrition.energy_kcal:.0f} kcal |")
 
+        lines.append("")
+        lines.append(f"- 💰 **价格结算**：原价 ¥{plan.original_total:.1f} ➡️ **实付 ¥{plan.actual_total:.1f}** (立省 ¥{plan.saved_amount:.1f})")
+        if plan.dietary_notes:
+            lines.append(f"- 📝 **定制备注**：{'；'.join(plan.dietary_notes)}")
+        if plan.dietary_alerts:
+            lines.append(f"- ⚠️ **忌口提醒**：{'；'.join(plan.dietary_alerts)}")
+        return "\n".join(lines)
+
+    def format_plan_markdown_list(self, plan: OptimizedPlan) -> str:
+        """生成带标准 Markdown 图片语法 ![name](url) 的清单格式"""
+        lines = [
+            f"### 🍔 {plan.plan_name} [{plan.reliability.value}]",
+            f"💡 *{plan.explanation}*",
+            ""
+        ]
+        for item in plan.items:
+            img_md = f"![{item.name}]({item.image_url}) " if item.image_url else ""
+            notes = f" (📝 {', '.join(item.customizations)})" if item.customizations else ""
+            lines.append(f"- {img_md}**{item.name}**（单价 ¥{item.original_price:.1f} · {item.nutrition.energy_kcal:.0f} kcal{notes}）")
         lines.append("")
         lines.append(f"- 💰 **价格结算**：原价 ¥{plan.original_total:.1f} ➡️ **实付 ¥{plan.actual_total:.1f}** (立省 ¥{plan.saved_amount:.1f})")
         if plan.dietary_notes:

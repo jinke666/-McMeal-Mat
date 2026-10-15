@@ -80,5 +80,30 @@ class TestNotesAndImages(unittest.TestCase):
         self.assertIn("https://menu-img.mcd.cn", md)
         self.assertIn("去冰", md)
 
+    def test_markdown_list_renders_markdown_image_tags(self):
+        """测试清单格式输出标准 Markdown 图片语法 ![name](url)"""
+        res = self.agent.process_request("预算 30 元，可乐去冰", user_id="user_list_test")
+        plan = res["plans"][0]
+        md_list = self.agent.format_plan_markdown_list(plan)
+
+        self.assertIn("![", md_list)
+        self.assertIn("https://menu-img.mcd.cn", md_list)
+        self.assertIn("去冰", md_list)
+
+    def test_vague_prompt_does_not_hijack_decision(self):
+        """测试当用户发出模糊问候时（如'我要点麦当劳'），麦麦提供启发引导，不越权直接下单"""
+        res = self.agent.process_request("我要点麦当劳", user_id="user_vague_test")
+        speech = res.get("maimai_speech", "")
+        self.assertIn("好呀！今天想吃汉堡、炸鸡还是健康轻食？", speech)
+        self.assertIn("挑选了两套可比较的方案", speech)
+        self.assertNotIn("说一声我就去下单", speech)
+
+    def test_reorder_prompt_provides_flavor_comparison(self):
+        """测试当用户说'重新点'时，麦麦提供新口味对比，不盲目固定旧方案"""
+        res = self.agent.process_request("重新点", user_id="user_reorder_test")
+        speech = res.get("maimai_speech", "")
+        self.assertIn("收到！这次想换个什么口味？", speech)
+        self.assertIn("两套新方向的对比方案", speech)
+
 if __name__ == "__main__":
     unittest.main()
